@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Своя игра</title>
-  <!-- SECRET_CODE: 7FBA1C39-SECRET -->
   <style>
     /* --- НАСТРОЙКИ И ПЕРЕМЕННЫЕ --- */
     :root {
@@ -395,7 +394,17 @@
     .badge.bag { background: var(--danger); color: white; border: none; }
 
     /* Редактор */
-    #editorModal .dialog { height: auto; max-height: 90vh; }
+    #editorModal .dialog {
+      width: min(1100px, 95vw);
+      height: 92vh;
+      max-height: 92vh;
+    }
+    #editorModal .qa-body {
+      display: block;
+      overflow-y: auto;
+      max-height: calc(92vh - 150px);
+      padding-right: 12px;
+    }
     .editor-grid { display: grid; gap: 12px; margin-bottom: 12px; }
     input[type="text"], input[type="number"], input[type="password"] {
       width: 100%; box-sizing: border-box;
@@ -406,16 +415,32 @@
     }
     [data-mode="light"] input { background: #fff; border-color: #cbd5e1; }
 
-    /* Лицензия */
-    .activate-overlay {
+    .overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.8);
       display: none; align-items: center; justify-content: center; z-index: 2000;
     }
-    .activate-box {
+    .overlay-box {
       background: var(--menu-bg); padding: 30px; border-radius: 20px; width: 400px;
       border: 1px solid var(--glass-border); text-align: center;
     }
 
+
+    .search-panel { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+    .search-panel input, .search-panel select { flex:1; min-width:180px; }
+    .search-results { max-height:180px; overflow:auto; border:1px solid var(--glass-border); border-radius:8px; padding:6px; }
+    .search-item { padding:8px; border-radius:8px; border:1px solid transparent; margin-bottom:6px; cursor:pointer; }
+    .search-item:hover { border-color: var(--accent); background: rgba(56,189,248,0.08); }
+    .editor-tools { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; align-items:center; }
+    .editor-tools .btn { white-space: nowrap; }
+    .section-title { font-size:12px; text-transform:uppercase; letter-spacing:.08em; opacity:.65; margin-bottom:6px; }
+    .controls-main { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+    .controls-main .btn { justify-content:center; }
+    .friendly-hint { font-size:12px; opacity:.7; line-height:1.35; }
+    .compact-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .q-media-preview { width:64px; height:40px; border:1px solid var(--glass-border); border-radius:6px; display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:11px; opacity:0.8; }
+    .q-media-preview img { width:100%; height:100%; object-fit:cover; }
+    .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:12px; margin-top:10px; }
+    .stats-grid > div { background: rgba(0,0,0,0.15); border:1px solid var(--glass-border); border-radius:8px; padding:8px; }
     @keyframes fadeIn { from{opacity:0} to{opacity:1} }
     @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
   
@@ -447,7 +472,7 @@
     @media print {
       body { background: #fff !important; color: #000 !important; }
       .container { max-width: none; padding: 0; }
-      header, .controls, #boardPager, .menu, #activateModal, #teamSelectModal, #editorModal, #modal { display: none !important; }
+      header, .controls, #boardPager, .menu, #teamSelectModal, #editorModal, #modal { display: none !important; }
       .layout { grid-template-columns: 1fr !important; gap: 0 !important; }
       .card { box-shadow: none !important; border: 1px solid #ccc !important; background: #fff !important; backdrop-filter: none !important; }
       .board { gap: 8px !important; }
@@ -464,7 +489,7 @@
   <header class="card">
     <div>
       <h1>Своя игра</h1>
-      <div class="subtitle" id="appSubtitle" style="font-size:12px; opacity:0.7">Лицензия: нет</div>
+      <div class="subtitle" id="appSubtitle" style="font-size:12px; opacity:0.7">Бесплатная версия</div>
     </div>
     
     <div style="display:flex; gap:10px; align-items:center;">
@@ -474,12 +499,13 @@
       <div class="menu">
         <button id="menuBtn" class="btn small">☰ Меню</button>
         <div id="menuPanel" class="menu-panel">
-          <button id="licenseBtn" class="menu-item">🔑 Лицензия</button>
-          <button id="printBtn" class="menu-item">🖨 Печать</button>
-          <button id="exportBtn" class="menu-item">⬇ Экспорт</button>
-          <button id="importBtn" class="menu-item">⬆ Импорт</button>
+          <button id="printBtn" class="menu-item">Печать</button>
+          <button id="exportBtn" class="menu-item">Экспорт JSON</button>
+          <button id="importBtn" class="menu-item">Импорт JSON</button>
+          <button id="exportCsvBtn" class="menu-item">Экспорт CSV</button>
+          <button id="importCsvBtn" class="menu-item">Импорт CSV</button>
           <div style="height:1px; background:var(--glass-border); margin:4px 0"></div>
-          <button id="resetBtn" class="menu-item danger">↻ Сброс</button>
+          <button id="resetBtn" class="menu-item danger">Полный сброс</button>
         </div>
       </div>
     </div>
@@ -494,8 +520,9 @@
       <div class="teams" id="teamsList"></div>
       
       <div style="margin-top:20px; padding-top:12px; border-top:1px solid var(--glass-border); font-size:12px; color:var(--text-muted); display:flex; justify-content:space-between; align-items:center;">
-        <button id="startRoundBtn" class="btn small">Новый раунд</button>
-        <span>Вопросов: <b id="leftCount" style="color:var(--text)">0</b></span>
+        <button id="startRoundBtn" class="btn">Новый раунд</button>
+        <button id="resetScoresBtn" class="btn">Сброс очков</button>
+        <span>Осталось вопросов: <b id="leftCount" style="color:var(--text)">0</b></span>
       </div>
     </div>
 
@@ -508,21 +535,38 @@
         </div>
         <button id="nextCatsBtn" class="btn small">Категории ▶</button>
       </div>
+      <div class="section-title">Быстрый поиск вопроса</div>
+      <div class="search-panel">
+        <input id="boardSearch" type="text" placeholder="Введите часть вопроса, ответа или название категории" />
+        <select id="boardFilter">
+          <option value="all">Все вопросы</option>
+          <option value="unused">Только несыгранные</option>
+          <option value="bag">Только «Кот в мешке»</option>
+          <option value="media">Только с медиа</option>
+        </select>
+        <button id="clearSearchBtn" class="btn small">Очистить</button>
+      </div>
+      <div id="searchResults" class="search-results" style="display:none"></div>
       <div id="board" class="board"></div>
     </div>
 
     <div class="card controls">
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
-        <button id="revealBtn" class="btn small">👁 Всё</button>
-        <button id="exportLogBtn" class="btn small">📄 Лог</button>
+      <div class="section-title">Панель ведущего</div>
+      <div class="controls-main">
+        <button id="revealBtn" class="btn">Показать все вопросы</button>
+        <button id="exportLogBtn" class="btn">Скачать лог</button>
       </div>
-      
-      <div style="font-size:12px; text-transform:uppercase; letter-spacing:1px; opacity:0.5; margin-bottom:6px;">Лог игры</div>
+      <div class="friendly-hint" style="margin-bottom:8px;">Подсказка: используйте поиск выше, чтобы быстро перейти к нужному вопросу.</div>
+      <div class="section-title">Лог игры</div>
       <div id="log" class="log"></div>
       
       <div style="border-top:1px solid var(--glass-border); padding-top:12px;">
         <div style="font-size:12px; opacity:0.5; margin-bottom:4px;">СЧЁТ</div>
         <div id="teamsState" style="line-height:1.4; font-size:13px;"></div>
+      </div>
+      <div style="border-top:1px solid var(--glass-border); padding-top:12px; margin-top:12px;">
+        <div style="font-size:12px; opacity:0.5; margin-bottom:4px;">Статистика партии</div>
+        <div id="gameStats" class="stats-grid"></div>
       </div>
     </div>
   </div>
@@ -563,8 +607,8 @@
 </div>
 
 <!-- Модалка выбора команды -->
-<div id="teamSelectModal" class="activate-overlay" style="z-index:1100">
-  <div class="activate-box">
+<div id="teamSelectModal" class="overlay" style="z-index:1100">
+  <div class="overlay-box">
     <h3 id="teamSelectTitle" style="margin-top:0">Выберите команду</h3>
     <select id="teamSelect" style="width:100%; padding:12px; font-size:16px; margin-bottom:20px;"></select>
     <div style="display:flex; gap:10px; justify-content:center;">
@@ -576,9 +620,13 @@
 
 <!-- Модалка редактора -->
 <div id="editorModal" class="modal">
-  <div class="dialog" style="height:auto; max-height:90vh; width:900px;">
+  <div class="dialog">
     <div class="qa-header">
-      <h2 style="margin:0">Редактор</h2>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <h2 style="margin:0">Редактор</h2>
+        <button id="undoEditor" class="btn small">↶ Отменить</button>
+        <button id="redoEditor" class="btn small">↷ Повторить</button>
+      </div>
       <button id="saveEditor" class="btn primary small">💾 Сохранить</button>
     </div>
     <div class="qa-body" style="align-items:stretch; text-align:left;">
@@ -592,7 +640,18 @@
         <label><input type="checkbox" id="singleTeam" /> Режим "1 игрок"</label>
       </div>
       
-      <div class="note" style="font-size:12px; opacity:0.85; margin-bottom:10px;">Медиа можно либо вставить ссылкой, либо загрузить файл (он встроится в HTML как <code>data:...</code>, и файл игры станет больше).</div>
+      <div class="section-title">Поиск и фильтр в редакторе</div>
+      <div class="editor-tools">
+        <input id="editorSearch" type="text" placeholder="Фильтр по тексту вопроса/ответа" />
+        <select id="editorFilter">
+          <option value="all">Все вопросы</option>
+          <option value="unused">Только несыгранные</option>
+          <option value="bag">Только «Кот в мешке»</option>
+          <option value="media">Только с медиа</option>
+        </select>
+        <button id="clearEditorSearch" class="btn small">Очистить</button>
+      </div>
+      <div class="note" style="font-size:12px; opacity:0.85; margin-bottom:10px;">Можно вставить ссылку на медиа или загрузить файл. Черновик редактора сохраняется автоматически.</div>
       <div id="categoriesEditor"></div>
       <button id="addCategoryBtn" class="btn small" style="width:100%; margin-top:10px;">+ Категория</button>
     </div>
@@ -602,34 +661,8 @@
   </div>
 </div>
 
-<!-- Модалка лицензии -->
-<div id="activateModal" class="activate-overlay">
-  <div class="activate-box">
-    <h2 style="color:var(--accent); margin-top:0">Активация</h2>
-    <input type="text" id="licenseInput" placeholder="Ключ лицензии" style="margin-bottom:10px" />
-    <input type="password" id="licensePassword" placeholder="Пароль (опционально)" style="margin-bottom:10px" />
-    
-    <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; font-size:12px; margin-bottom:15px; text-align:left">
-      <div style="opacity:0.6; margin-bottom:4px;">Ваш Device ID:</div>
-      <code id="deviceIdText" style="color:var(--accent); word-break:break-all"></code>
-      <button id="copyDeviceId" class="btn small" style="margin-top:6px; width:100%">Копировать</button>
-    </div>
-    
-    <div id="activateError" style="color:var(--danger); display:none; margin-bottom:10px">Ошибка</div>
-    
-    <div style="display:flex; gap:10px;">
-      <button id="activateOk" class="btn primary" style="flex:1">Активировать</button>
-      <button id="activateCancel" class="btn" style="flex:1">Отмена</button>
-    </div>
-    <div id="currentLicInfo" style="margin-top:15px; font-size:12px; opacity:0.7; text-align:left; display:none;"></div>
-  </div>
-</div>
-
 <script>
   /* --- JS LOGIC --- */
-  const PUBLIC_JWK = {"crv":"P-256","ext":true,"key_ops":["verify"],"kty":"EC","x":"SGr1QrKPaOOaufxVf7dfDYpzRRr2zC2jpuMIv3ZHhrU","y":"Q283vHdh667exblKH7xjPnsKR4rtVW8bdYD4PpZUV0c"};
-
-  const FEATURES = { timer: 'timer', media: 'media', bag: 'bag', logExport: 'logExport' };
   // --- PAGINATION (категории) ---
   const CATS_PER_PAGE = 5;
   let catsPage = 0;
@@ -651,9 +684,14 @@
     }
   };
 
-  let GAME = null, TEAMS = {}, LICENSE = null, current = null;
+  let GAME = null, TEAMS = {}, current = null;
   let timerInterval = null, timerLeft = 0;
   let teamSelectCallback = null, gameLog = [];
+  let pendingFileReads = 0;
+  let GAME_STATS = { asked: 0, correct: 0, wrong: 0, pass: 0 };
+  let editorHistory = [];
+  let editorFuture = [];
+  let editorAutosaveTimer = null;
 
   // DOM Elements
   const els = {
@@ -662,6 +700,7 @@
     leftCount: document.getElementById('leftCount'),
     log: document.getElementById('log'),
     teamsState: document.getElementById('teamsState'),
+    stats: document.getElementById('gameStats'),
     modal: document.getElementById('modal'),
     qText: document.getElementById('questionText'),
     qMedia: document.getElementById('questionMedia'),
@@ -670,8 +709,6 @@
     timer: document.getElementById('timer'),
     editor: document.getElementById('editorModal'),
     catEditor: document.getElementById('categoriesEditor'),
-    licModal: document.getElementById('activateModal'),
-    licInfo: document.getElementById('currentLicInfo'),
     menu: document.getElementById('menuPanel'),
     badges: { cat: document.getElementById('badgeCat'), cost: document.getElementById('badgeCost'), bag: document.getElementById('badgeBag') }
   };
@@ -679,7 +716,6 @@
   // --- UTILS ---
   const nowISO = () => new Date().toISOString();
   const safeInt = (x, def) => Number.isFinite(parseInt(x,10)) ? parseInt(x,10) : def;
-  const sanitize = (s, max=2000) => (s??'').toString().slice(0,max);
   // Escape HTML special characters to prevent injection when rendering user-controlled strings
   const escapeHtml = (s) => {
     return String(s ?? '').replace(/[&<>]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c] || c));
@@ -692,45 +728,247 @@
     gameLog.push({time: nowISO(), message: txt});
   };
 
-  // --- LICENSE & CRYPTO ---
-  function b64urlDecode(str) {
-    str = str.replace(/-/g,'+').replace(/_/g,'/');
-    while(str.length%4) str+='=';
-    const bin = atob(str);
-    const u8 = new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i);
-    return u8;
+  function setEditorSaveBusy(isBusy) {
+    const btn = document.getElementById('saveEditor');
+    if(!btn) return;
+    btn.disabled = !!isBusy;
+    btn.textContent = isBusy ? '⏳ Обработка файлов...' : '💾 Сохранить';
   }
-  async function importKey() {
-    if(!PUBLIC_JWK.x || PUBLIC_JWK.x === 'REPLACE_ME') return null;
-    try { return await crypto.subtle.importKey('jwk', PUBLIC_JWK, {name:'ECDSA', namedCurve:'P-256'}, true, ['verify']); } catch(e){return null;}
+
+  const toBool = (v) => v === true || v === 1 || v === '1' || v === 'true';
+
+  function saveStats() {
+    try { localStorage.setItem('svoya_stats_v1', JSON.stringify(GAME_STATS)); } catch(e) {}
   }
-  async function checkSig(key, payload, sig) {
-    try { return await crypto.subtle.verify({name:'ECDSA', hash:'SHA-256'}, key, sig, payload); } catch(e){return false;}
-  }
-  async function parseLicense(str) {
-    if(!str || !str.includes('.')) return null;
-    const [p64, s64] = str.split('.');
+
+  function loadStats() {
     try {
-      const pBytes = b64urlDecode(p64);
-      const sBytes = b64urlDecode(s64);
-      const key = await importKey();
-      if(!key || !await checkSig(key, pBytes, sBytes)) return null;
-      const json = JSON.parse(new TextDecoder().decode(pBytes));
-      // If license has expired, flag it
-      if(json.exp && Date.now() > json.exp) json.expired = true;
-      // Enforce device binding: ensure the license ID matches the current device
-      if(json.id && json.id !== getDeviceId()) {
-        return null;
-      }
-      return json;
-    } catch(e) { return null; }
+      const raw = JSON.parse(localStorage.getItem('svoya_stats_v1') || '{}');
+      GAME_STATS = {
+        asked: safeInt(raw.asked, 0),
+        correct: safeInt(raw.correct, 0),
+        wrong: safeInt(raw.wrong, 0),
+        pass: safeInt(raw.pass, 0)
+      };
+    } catch(e) {
+      GAME_STATS = { asked: 0, correct: 0, wrong: 0, pass: 0 };
+    }
+  }
+
+  function renderStats() {
+    if(!els.stats) return;
+    const total = Math.max(1, GAME_STATS.correct + GAME_STATS.wrong + GAME_STATS.pass);
+    const accuracy = Math.round((GAME_STATS.correct / total) * 100);
+    els.stats.innerHTML = `
+      <div>Открыто: <b>${GAME_STATS.asked}</b></div>
+      <div>Верно: <b>${GAME_STATS.correct}</b></div>
+      <div>Неверно: <b>${GAME_STATS.wrong}</b></div>
+      <div>Пас: <b>${GAME_STATS.pass}</b></div>
+      <div style="grid-column:1 / -1">Точность: <b>${accuracy}%</b></div>
+    `;
+  }
+
+  function getAllQuestionsFlat() {
+    const out = [];
+    Object.entries(GAME.categories || {}).forEach(([cat, arr]) => {
+      (arr || []).forEach((q, idx) => out.push({ cat, q, idx }));
+    });
+    return out;
+  }
+
+  function renderSearchResults() {
+    const wrap = document.getElementById('searchResults');
+    const inp = document.getElementById('boardSearch');
+    const f = document.getElementById('boardFilter');
+    if(!wrap || !inp || !f) return;
+    const query = String(inp.value || '').trim().toLowerCase();
+    const filter = f.value || 'all';
+    const rows = getAllQuestionsFlat().filter(({q, cat}) => {
+      const hit = !query || [cat, q.q, q.a, q.value].join(' ').toLowerCase().includes(query);
+      if(!hit) return false;
+      if(filter === 'unused') return !q.used;
+      if(filter === 'bag') return !!q.bag;
+      if(filter === 'media') return !!(q.media && String(q.media).trim());
+      return true;
+    }).slice(0, 120);
+
+    if(!query && filter === 'all') {
+      wrap.style.display = 'none';
+      wrap.innerHTML = '';
+      return;
+    }
+
+    wrap.style.display = 'block';
+    if(!rows.length) {
+      wrap.innerHTML = '<div style="opacity:0.7; padding:8px">Ничего не найдено</div>';
+      return;
+    }
+    wrap.innerHTML = rows.map(({cat,q}) => `<div class="search-item" data-cat="${escapeHtml(cat)}" data-val="${q.value}"><b>${escapeHtml(cat)}</b> · ${q.value}<br><span style="opacity:0.8">${escapeHtml(String(q.q||''))}</span></div>`).join('');
+    wrap.querySelectorAll('.search-item').forEach((el) => {
+      el.onclick = () => {
+        const cat = el.getAttribute('data-cat');
+        const val = safeInt(el.getAttribute('data-val'), 0);
+        const arr = GAME.categories[cat] || [];
+        const found = arr.find((x) => safeInt(x.value,0) === val && !x.used) || arr.find((x)=>safeInt(x.value,0)===val);
+        if(!found) return;
+        const cats = Object.keys(GAME.categories);
+        const page = Math.floor(cats.indexOf(cat) / CATS_PER_PAGE);
+        if(page >= 0) catsPage = page;
+        render();
+        if(!found.used) openQuestion(cat, found);
+      };
+    });
+  }
+
+  function serializeEditorState() {
+    const state = {
+      title: document.getElementById('gameTitleInput')?.value || GAME.title,
+      timer: safeInt(document.getElementById('timerInput')?.value, GAME.timer),
+      settings: {
+        allowNegative: !!document.getElementById('allowNegative')?.checked,
+        autoDeduct: !!document.getElementById('autoDeduct')?.checked,
+        singleTeam: !!document.getElementById('singleTeam')?.checked
+      },
+      categories: []
+    };
+    Array.from(els.catEditor.children).forEach((div) => {
+      state.categories.push({
+        name: String(div.querySelector('.cat-name')?.value || ''),
+        questions: JSON.parse(JSON.stringify(div.qData || []))
+      });
+    });
+    return state;
+  }
+
+  function applyEditorState(state) {
+    if(!state) return;
+    document.getElementById('gameTitleInput').value = state.title || '';
+    document.getElementById('timerInput').value = safeInt(state.timer, 20);
+    document.getElementById('allowNegative').checked = !!(state.settings && state.settings.allowNegative);
+    document.getElementById('autoDeduct').checked = !!(state.settings && state.settings.autoDeduct);
+    document.getElementById('singleTeam').checked = !!(state.settings && state.settings.singleTeam);
+    els.catEditor.innerHTML = '';
+    (state.categories || []).forEach((c) => addCategoryEditorBlock(c.name || 'Категория', c.questions || []));
+  }
+
+  function pushEditorHistory() {
+    editorHistory.push(serializeEditorState());
+    if(editorHistory.length > 60) editorHistory.shift();
+    editorFuture = [];
+  }
+
+  function markEditorChanged() {
+    pushEditorHistory();
+    clearTimeout(editorAutosaveTimer);
+    editorAutosaveTimer = setTimeout(() => {
+      try { localStorage.setItem('svoya_editor_draft_v1', JSON.stringify(serializeEditorState())); } catch(e) {}
+    }, 250);
+  }
+
+  function applyEditorRowFilters() {
+    const q = String(document.getElementById('editorSearch')?.value || '').trim().toLowerCase();
+    const f = String(document.getElementById('editorFilter')?.value || 'all');
+    document.querySelectorAll('#categoriesEditor .q-row').forEach((row) => {
+      const txt = [
+        row.querySelector('.q-txt')?.value || '',
+        row.querySelector('.q-ans')?.value || '',
+        row.closest('.card')?.querySelector('.cat-name')?.value || ''
+      ].join(' ').toLowerCase();
+      const hasMedia = !!(row.querySelector('.q-media-badge')?.textContent || '').trim();
+      const isBag = !!row.querySelector('.q-bag')?.checked;
+      const isUnused = true;
+      const byQuery = !q || txt.includes(q);
+      let byFilter = true;
+      if(f === 'media') byFilter = hasMedia;
+      else if(f === 'bag') byFilter = isBag;
+      else if(f === 'unused') byFilter = isUnused;
+      row.style.display = (byQuery && byFilter) ? 'flex' : 'none';
+    });
+  }
+
+  function exportCsv() {
+    const lines = ['category,value,question,answer,bag,used,timerSec,media,mediaName,mediaType'];
+    const esc = (v) => `"${String(v ?? '').replace(/"/g,'""')}"`;
+    Object.entries(GAME.categories || {}).forEach(([cat, arr]) => {
+      (arr || []).forEach((q) => {
+        lines.push([cat,q.value,q.q,q.a,q.bag?1:0,q.used?1:0,q.timerSec||'',q.media||'',q.mediaName||'',q.mediaType||''].map(esc).join(','));
+      });
+    });
+    const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'game_template.csv'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  function parseCsvLine(line) {
+    const out = [];
+    let cur = '';
+    let q = false;
+    for(let i=0;i<line.length;i++) {
+      const ch = line[i];
+      if(ch === '"') {
+        if(q && line[i+1] === '"') { cur += '"'; i++; }
+        else q = !q;
+      } else if(ch === ',' && !q) {
+        out.push(cur); cur = '';
+      } else cur += ch;
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function importCsv() {
+    const i = document.createElement('input');
+    i.type = 'file';
+    i.accept = '.csv,text/csv';
+    i.onchange = (e) => {
+      const f = e.target.files && e.target.files[0];
+      if(!f) return;
+      const r = new FileReader();
+      r.onload = (ev) => {
+        try {
+          const txt = String(ev.target.result || '');
+          const lines = txt.split(/\r?\n/).filter(Boolean);
+          if(lines.length < 2) throw new Error('empty csv');
+          const map = {};
+          lines.slice(1).forEach((ln) => {
+            const c = parseCsvLine(ln);
+            const cat = String(c[0] || '').trim();
+            if(!cat) return;
+            if(!map[cat]) map[cat] = [];
+            map[cat].push({
+              value: Math.max(1, safeInt(c[1], 100)),
+              q: String(c[2] || ''),
+              a: String(c[3] || ''),
+              bag: toBool(c[4]),
+              used: toBool(c[5]),
+              timerSec: safeInt(c[6], 0) || undefined,
+              media: String(c[7] || '').trim(),
+              mediaName: String(c[8] || ''),
+              mediaType: String(c[9] || '')
+            });
+          });
+          Object.values(map).forEach(arr => arr.sort((a,b)=>a.value-b.value));
+          GAME.categories = map;
+          catsPage = 0;
+          saveState();
+          render();
+          log('Импорт CSV завершен');
+        } catch (err) {
+          console.error(err);
+          alert('Ошибка CSV: проверьте формат файла.');
+        }
+      };
+      r.readAsText(f);
+    };
+    i.click();
   }
 
   // --- CORE ---
   function init() {
     loadState();
-    loadLicense();
+    loadStats();
     applyMode(); // Now properly defined below
     render();
     
@@ -754,13 +992,33 @@
       render();
     };
 
+
+    const boardSearch = document.getElementById('boardSearch');
+    const boardFilter = document.getElementById('boardFilter');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    if(boardSearch) boardSearch.oninput = renderSearchResults;
+    if(boardFilter) boardFilter.onchange = renderSearchResults;
+    if(clearSearchBtn) clearSearchBtn.onclick = () => {
+      if(boardSearch) boardSearch.value = '';
+      if(boardFilter) boardFilter.value = 'all';
+      renderSearchResults();
+    };
+
     
     // Modal controls
     document.getElementById('closeModal').onclick = closeModal;
     document.getElementById('toggleAnswerBtn').onclick = toggleAnswer;
     document.getElementById('correctBtn').onclick = () => handleAnswer(true);
     document.getElementById('wrongBtn').onclick = () => handleAnswer(false);
-    document.getElementById('passBtn').onclick = () => { log('Пропуск'); closeModal(); };
+    document.getElementById('passBtn').onclick = () => {
+      if(current && current.ref) current.ref.used = true;
+      GAME_STATS.pass++;
+      saveStats();
+      log('Пропуск');
+      saveState();
+      render();
+      closeModal();
+    };
     
     // Editor controls
     document.getElementById('editorBtn').onclick = openEditor;
@@ -770,7 +1028,28 @@
       els.editor.classList.remove('open');
       setTimeout(() => { els.editor.style.display = 'none'; }, 300);
     };
-    document.getElementById('addCategoryBtn').onclick = () => addCategoryEditorBlock('Новая', []);
+    document.getElementById('addCategoryBtn').onclick = () => { addCategoryEditorBlock('Новая', []); markEditorChanged(); };
+    document.getElementById('undoEditor').onclick = () => {
+      if(editorHistory.length < 2) return;
+      const currentState = editorHistory.pop();
+      editorFuture.push(currentState);
+      applyEditorState(editorHistory[editorHistory.length - 1]);
+      applyEditorRowFilters();
+    };
+    document.getElementById('redoEditor').onclick = () => {
+      if(!editorFuture.length) return;
+      const st = editorFuture.pop();
+      applyEditorState(st);
+      editorHistory.push(serializeEditorState());
+      applyEditorRowFilters();
+    };
+    document.getElementById('editorSearch').oninput = applyEditorRowFilters;
+    document.getElementById('editorFilter').onchange = applyEditorRowFilters;
+    document.getElementById('clearEditorSearch').onclick = () => {
+      document.getElementById('editorSearch').value = '';
+      document.getElementById('editorFilter').value = 'all';
+      applyEditorRowFilters();
+    };
     
     // Teams
     document.getElementById('addTeamBtn').onclick = addTeam;
@@ -781,25 +1060,45 @@
     };
     document.getElementById('teamSelectCancel').onclick = () => document.getElementById('teamSelectModal').style.display = 'none';
     
-    // License
-    document.getElementById('licenseBtn').onclick = () => { els.licModal.style.display = 'flex'; document.getElementById('deviceIdText').textContent = getDeviceId(); };
-    document.getElementById('activateCancel').onclick = () => els.licModal.style.display = 'none';
-    document.getElementById('activateOk').onclick = activateLicense;
-    document.getElementById('copyDeviceId').onclick = () => navigator.clipboard.writeText(getDeviceId());
-
     // Other menu
     document.getElementById('exportLogBtn').onclick = exportLog;
     document.getElementById('startRoundBtn').onclick = () => { if(confirm('Сбросить состояние вопросов?')) { Object.values(GAME.categories).forEach(c=>c.forEach(q=>q.used=false)); saveState(); render(); log('Новый раунд'); }};
+    document.getElementById('resetScoresBtn').onclick = () => {
+      if(!confirm('Сбросить очки всех команд?')) return;
+      Object.keys(TEAMS).forEach((k) => { TEAMS[k].score = 0; });
+      saveState();
+      render();
+      log('Очки команд сброшены');
+    };
     document.getElementById('revealBtn').onclick = () => { Object.values(GAME.categories).forEach(c=>c.forEach(q=>q.used=true)); saveState(); render(); };
     document.getElementById('exportBtn').onclick = exportGame;
+    document.getElementById('exportCsvBtn').onclick = exportCsv;
+    document.getElementById('importCsvBtn').onclick = importCsv;
     document.getElementById('importBtn').onclick = () => {
-        const i = document.createElement('input'); i.type='file'; i.onchange=e=>{
-            const f=e.target.files[0]; if(!f)return;
-            const r=new FileReader(); r.onload=ev=>{ try{
-                const d=JSON.parse(ev.target.result); if(d.game) GAME=d.game; if(d.teams) TEAMS=d.teams;
-                saveState(); render(); log('Импорт завершен');
-            }catch(x){alert('Ошибка файла');}}; r.readAsText(f);
-        }; i.click();
+        const i = document.createElement('input');
+        i.type = 'file';
+        i.accept = '.json,application/json';
+        i.onchange = (e) => {
+            const f = e.target.files && e.target.files[0];
+            if(!f) return;
+            const r = new FileReader();
+            r.onload = (ev) => {
+              try {
+                const data = JSON.parse(String(ev.target.result || '{}'));
+                GAME = normalizeGame(data.game);
+                TEAMS = normalizeTeams(data.teams);
+                catsPage = 0;
+                saveState();
+                render();
+                log('Импорт завершен');
+              } catch (x) {
+                console.error('Import failed', x);
+                alert('Ошибка файла: проверьте формат JSON.');
+              }
+            };
+            r.readAsText(f);
+        };
+        i.click();
     };
   }
 
@@ -865,6 +1164,8 @@
     els.leftCount.textContent = left;
     
     document.querySelector('h1').textContent = GAME.title || 'Своя игра';
+    renderStats();
+    renderSearchResults();
   }
 
 // Метод openQuestion()
@@ -875,7 +1176,7 @@ function openQuestion(cat, q) {
     
     els.badges.cat.textContent = cat;
     els.badges.cost.textContent = q.value;
-    els.badges.bag.style.display = (hasFeature('bag') && q.bag) ? 'inline-block' : 'none';
+    els.badges.bag.style.display = q.bag ? 'inline-block' : 'none';
     
     els.qText.textContent = q.q;
     els.ansText.textContent = q.a;
@@ -886,10 +1187,14 @@ function openQuestion(cat, q) {
     els.qMedia.innerHTML = '';
     els.qMedia.style.display = 'none';
     const media = String(q.media ?? '').trim();
-if(hasFeature('media') && q.media) {
+if(media) {
     els.qMedia.style.display = 'block';
     const kind = (() => {
-        const u = q.media.toLowerCase();
+        const mediaType = String(q.mediaType || '').toLowerCase();
+        if(mediaType.startsWith('image/')) return 'image';
+        if(mediaType.startsWith('video/')) return 'video';
+        if(mediaType.startsWith('audio/')) return 'audio';
+        const u = media.toLowerCase();
         if(u.startsWith('data:')) {
             const mime = u.slice(5, u.indexOf(';') > -1 ? u.indexOf(';') : u.length);
             const top = mime.split('/')[0];
@@ -904,19 +1209,45 @@ if(hasFeature('media') && q.media) {
         return 'link';
     })();
 
-    const label = q.mediaName ? `<div style="font-size:12px; opacity:0.8; margin-bottom:6px">${escapeHtml(q.mediaName)}</div>` : '';
+    if(q.mediaName) {
+      const label = document.createElement('div');
+      label.style.cssText = 'font-size:12px; opacity:0.8; margin-bottom:6px';
+      label.textContent = String(q.mediaName);
+      els.qMedia.appendChild(label);
+    }
+
     if(kind === 'video') {
-        els.qMedia.innerHTML = label + `<video src="${escapeHtml(q.media)}" controls style="max-height:40vh; border-radius:12px; width:100%"></video>`;
+      const video = document.createElement('video');
+      video.src = media;
+      video.controls = true;
+      video.style.cssText = 'max-height:40vh; border-radius:12px; width:100%';
+      els.qMedia.appendChild(video);
     } else if(kind === 'audio') {
-        els.qMedia.innerHTML = label + `<audio src="${escapeHtml(q.media)}" controls style="width:100%"></audio>`;
+      const audio = document.createElement('audio');
+      audio.src = media;
+      audio.controls = true;
+      audio.style.width = '100%';
+      els.qMedia.appendChild(audio);
     } else if(kind === 'image') {
-        els.qMedia.innerHTML = label + `<img src="${escapeHtml(q.media)}" alt="Изображение" style="max-height:40vh; border-radius:12px; max-width:100%" />`;
+      const img = document.createElement('img');
+      img.src = media;
+      img.alt = 'Изображение';
+      img.style.cssText = 'max-height:40vh; border-radius:12px; max-width:100%';
+      els.qMedia.appendChild(img);
     } else {
-        els.qMedia.innerHTML = label + `<a href="${escapeHtml(q.media)}" target="_blank" rel="noopener" style="color:var(--accent)">Открыть медиа</a>`;
+      const link = document.createElement('a');
+      link.href = media;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.style.color = 'var(--accent)';
+      link.textContent = 'Открыть медиа';
+      els.qMedia.appendChild(link);
     }
 }
 
     startTimer(q.timerSec);
+    GAME_STATS.asked++;
+    saveStats();
     log(`Вопрос: ${cat} - ${q.value}`);
 }
 
@@ -990,6 +1321,8 @@ function closeModal() {
     showTeamSelect(title, (team) => {
         if(!TEAMS[team]) return;
         const pts = isCorrect ? current.value : (GAME.settings.autoDeduct ? -current.value : 0);
+        if(isCorrect) GAME_STATS.correct++; else GAME_STATS.wrong++;
+        saveStats();
         TEAMS[team].score += pts;
         if(!GAME.settings.allowNegative && TEAMS[team].score < 0) TEAMS[team].score = 0;
         
@@ -1037,6 +1370,19 @@ function closeModal() {
 
     els.catEditor.innerHTML = '';
     Object.entries(GAME.categories).forEach(([name, qs]) => addCategoryEditorBlock(name, qs));
+    const draftRaw = localStorage.getItem('svoya_editor_draft_v1');
+    if(draftRaw) {
+      try {
+        const draft = JSON.parse(draftRaw);
+        if(draft && draft.categories && confirm('Найден автосохраненный черновик редактора. Восстановить?')) {
+          applyEditorState(draft);
+        }
+      } catch(e) {}
+    }
+    editorHistory = [serializeEditorState()];
+    editorFuture = [];
+    applyEditorRowFilters();
+    setEditorSaveBusy(false);
   }
 
   function addCategoryEditorBlock(name, questions) {
@@ -1044,7 +1390,7 @@ function closeModal() {
     div.className = 'card'; div.style='margin-bottom:10px; padding:10px; background:rgba(0,0,0,0.1)';
     div.innerHTML = `
       <div style="display:flex; gap:10px; margin-bottom:10px">
-        <input type="text" class="cat-name" value="${name}" placeholder="Категория" style="font-weight:bold" />
+        <input type="text" class="cat-name" value="${escapeHtml(name)}" placeholder="Категория" style="font-weight:bold" />
         <button class="btn small danger del-cat">Удалить</button>
       </div>
       <div class="q-list"></div>
@@ -1073,6 +1419,7 @@ function closeModal() {
                   КОТ
                 </label>
                 <span class="q-media-badge" style="font-size:12px; opacity:0.85; white-space:nowrap" title="Есть медиа">${mediaBadge}</span>
+                <div class="q-media-preview" title="Превью медиа"></div>
                 <input type="text" class="q-media-url" value="${escapeHtml(mediaUrlValue)}" placeholder="${hasDataMedia ? 'Медиа встроено (data)' : 'Медиа URL (опц.)'}" title="Ссылка на изображение/видео/аудио (опционально). Можно оставить пустым, если загрузили файл." style="flex:1; min-width:220px" />
                 <input type="file" class="q-media-file" accept="image/*,video/*,audio/*" title="Загрузить медиа в вопрос (встроится в файл как data:...)" style="max-width:220px" />
                 <button class="btn small del-media" title="Очистить медиа">🧹</button>
@@ -1087,32 +1434,50 @@ function closeModal() {
             const urlEl = row.querySelector('.q-media-url');
             const fileEl = row.querySelector('.q-media-file');
             const badgeEl = row.querySelector('.q-media-badge');
+            const previewEl = row.querySelector('.q-media-preview');
 
             const refreshBadge = () => {
-              badgeEl.textContent = (q.media && String(q.media).trim()) ? '🎞️' : '';
-              const isData = String(q.media||'').startsWith('data:');
+              const med = String(q.media || '').trim();
+              badgeEl.textContent = med ? '🎞️' : '';
+              const isData = med.startsWith('data:');
               if(isData) {
                 urlEl.value = '';
                 urlEl.placeholder = q.mediaName ? `Медиа встроено: ${q.mediaName}` : 'Медиа встроено (data)';
               } else {
                 urlEl.placeholder = 'Медиа URL (опц.)';
               }
+              if(!med) {
+                previewEl.textContent = '—';
+                previewEl.innerHTML = '—';
+              } else if((q.mediaType || '').startsWith('image/') || /^(data:image|https?:.*\.(png|jpe?g|gif|webp|bmp|svg))/i.test(med)) {
+                previewEl.innerHTML = `<img src="${escapeHtml(med)}" alt="preview" />`;
+              } else if((q.mediaType || '').startsWith('video/')) {
+                previewEl.innerHTML = '🎬';
+              } else if((q.mediaType || '').startsWith('audio/')) {
+                previewEl.innerHTML = '🎧';
+              } else {
+                previewEl.innerHTML = '🔗';
+              }
+              applyEditorRowFilters();
             };
 
-            valEl.oninput = () => { q.value = safeInt(valEl.value, 100); };
-            qEl.oninput = () => { q.q = qEl.value; };
-            aEl.oninput = () => { q.a = aEl.value; };
+            valEl.oninput = () => { q.value = safeInt(valEl.value, 100); markEditorChanged(); };
+            qEl.oninput = () => { q.q = qEl.value; markEditorChanged(); applyEditorRowFilters(); };
+            aEl.oninput = () => { q.a = aEl.value; markEditorChanged(); applyEditorRowFilters(); };
             tEl.oninput = () => {
               const v = String(tEl.value).trim();
               q.timerSec = v ? safeInt(v, 0) : undefined;
+              markEditorChanged();
             };
-            bagEl.onchange = () => { q.bag = !!bagEl.checked; };
+            bagEl.onchange = () => { q.bag = !!bagEl.checked; markEditorChanged(); refreshBadge(); };
 
             urlEl.oninput = () => {
               const v = String(urlEl.value).trim();
               q.media = v || '';
-              if(!v) { delete q.mediaName; }
+              if(!v) { delete q.mediaName; delete q.mediaType; }
+              else { delete q.mediaType; }
               refreshBadge();
+              markEditorChanged();
             };
 
             fileEl.onchange = () => {
@@ -1121,11 +1486,22 @@ function closeModal() {
               if(file.size > 2 * 1024 * 1024) {
                 alert('Файл больше 2 МБ. Он будет встроен в HTML и может не сохраниться в браузере из-за лимита. Лучше уменьшить/сжать файл или использовать URL.');
               }
+              pendingFileReads++;
+              setEditorSaveBusy(true);
               const reader = new FileReader();
               reader.onload = () => {
                 q.media = String(reader.result || '');
                 q.mediaName = file.name;
+                q.mediaType = file.type || '';
                 refreshBadge();
+                pendingFileReads = Math.max(0, pendingFileReads - 1);
+                if(pendingFileReads === 0) setEditorSaveBusy(false);
+                markEditorChanged();
+              };
+              reader.onerror = () => {
+                pendingFileReads = Math.max(0, pendingFileReads - 1);
+                if(pendingFileReads === 0) setEditorSaveBusy(false);
+                alert('Не удалось прочитать файл. Попробуйте другой.');
               };
               reader.readAsDataURL(file);
             };
@@ -1133,12 +1509,14 @@ function closeModal() {
             row.querySelector('.del-media').onclick = () => {
               q.media = '';
               delete q.mediaName;
+              delete q.mediaType;
               fileEl.value = '';
               urlEl.value = '';
               refreshBadge();
+              markEditorChanged();
             };
 
-            row.querySelector('.del-q').onclick = () => { qs.splice(idx,1); renderQs(qs); };
+            row.querySelector('.del-q').onclick = () => { qs.splice(idx,1); renderQs(qs); markEditorChanged(); };
 
             // initialize placeholder/badge
             refreshBadge();
@@ -1154,13 +1532,18 @@ function closeModal() {
         const last = div.qData.length ? div.qData[div.qData.length-1].value : 0;
         div.qData.push({value: last+100, q:'', a:'', used:false, bag:false, media:'', timerSec: undefined});
         renderQs(div.qData);
+        markEditorChanged();
     };
-    div.querySelector('.del-cat').onclick = () => div.remove();
+    div.querySelector('.del-cat').onclick = () => { div.remove(); markEditorChanged(); };
     
     els.catEditor.appendChild(div);
   }
 
   function saveEditor() {
+    if(pendingFileReads > 0) {
+      alert('Подождите, пока загрузятся все выбранные файлы.');
+      return;
+    }
     GAME.title = document.getElementById('gameTitleInput').value;
     GAME.timer = safeInt(document.getElementById('timerInput').value, 20);
     GAME.settings.allowNegative = document.getElementById('allowNegative').checked;
@@ -1184,6 +1567,7 @@ function closeModal() {
             const med = String(q.media ?? '').trim();
             if(med) out.media = med;
             if(q.mediaName) out.mediaName = String(q.mediaName);
+            if(q.mediaType) out.mediaType = String(q.mediaType);
             return out;
         });
         qs.sort((a,b) => a.value - b.value);
@@ -1192,6 +1576,7 @@ function closeModal() {
     
     GAME.categories = newCats;
     catsPage = 0;
+    localStorage.removeItem('svoya_editor_draft_v1');
     saveState();
     render();
     // Hide editor modal with fade-out animation
@@ -1215,7 +1600,6 @@ function closeModal() {
   }
 
   function startTimer(secondsOverride) {
-    if(!hasFeature('timer')) { els.timer.textContent = ''; return; }
     const override = Number(secondsOverride);
     const base = (Number.isFinite(override) && override > 0) ? Math.floor(override) : GAME.timer;
     timerLeft = base;
@@ -1233,14 +1617,78 @@ function closeModal() {
     if(n && !TEAMS[n]) { TEAMS[n] = {score:0}; saveState(); render(); }
   }
 
+  function normalizeGame(rawGame) {
+    const fallback = JSON.parse(JSON.stringify(DEFAULT_GAME));
+    if(!rawGame || typeof rawGame !== 'object') return fallback;
+
+    const game = {
+      title: String(rawGame.title ?? fallback.title),
+      timer: Math.max(1, safeInt(rawGame.timer, fallback.timer)),
+      settings: {
+        allowNegative: toBool(rawGame.settings && rawGame.settings.allowNegative),
+        autoDeduct: toBool(rawGame.settings && rawGame.settings.autoDeduct),
+        singleTeam: toBool(rawGame.settings && rawGame.settings.singleTeam)
+      },
+      categories: {}
+    };
+
+    const srcCats = (rawGame.categories && typeof rawGame.categories === 'object') ? rawGame.categories : fallback.categories;
+    Object.entries(srcCats).forEach(([catName, rawQs]) => {
+      const safeName = String(catName ?? '').trim();
+      if(!safeName) return;
+      const list = Array.isArray(rawQs) ? rawQs : [];
+      const normalized = list.map((q) => {
+        const item = {
+          value: Math.max(1, safeInt(q && q.value, 100)),
+          q: String((q && q.q) ?? ''),
+          a: String((q && q.a) ?? ''),
+          used: !!(q && q.used)
+        };
+        if(toBool(q && q.bag)) item.bag = true;
+        const tm = safeInt(q && q.timerSec, 0);
+        if(tm > 0) item.timerSec = tm;
+        const media = String((q && q.media) ?? '').trim();
+        if(media) item.media = media;
+        if(q && q.mediaName) item.mediaName = String(q.mediaName);
+        if(q && q.mediaType) item.mediaType = String(q.mediaType);
+        return item;
+      }).sort((a,b) => a.value - b.value);
+      game.categories[safeName] = normalized;
+    });
+
+    if(!Object.keys(game.categories).length) game.categories = fallback.categories;
+    return game;
+  }
+
+  function normalizeTeams(rawTeams) {
+    if(!rawTeams || typeof rawTeams !== 'object') return {};
+    const teams = {};
+    Object.entries(rawTeams).forEach(([name, team]) => {
+      const safeName = String(name ?? '').trim();
+      if(!safeName) return;
+      teams[safeName] = { score: safeInt(team && team.score, 0) };
+    });
+    return teams;
+  }
+
   function loadState() {
-    const s = localStorage.getItem('svoyagamev6');
-    if(s) GAME = JSON.parse(s);
-    else GAME = JSON.parse(JSON.stringify(DEFAULT_GAME));
-    
-    const t = localStorage.getItem('svoyateams');
-    if(t) TEAMS = JSON.parse(t);
-    
+    try {
+      const s = localStorage.getItem('svoyagamev6');
+      const rawGame = s ? JSON.parse(s) : DEFAULT_GAME;
+      GAME = normalizeGame(rawGame);
+    } catch (e) {
+      console.warn('Failed to parse saved game state, fallback to defaults.', e);
+      GAME = JSON.parse(JSON.stringify(DEFAULT_GAME));
+    }
+
+    try {
+      const t = localStorage.getItem('svoyateams');
+      TEAMS = t ? normalizeTeams(JSON.parse(t)) : {};
+    } catch (e) {
+      console.warn('Failed to parse saved teams, fallback to empty.', e);
+      TEAMS = {};
+    }
+
     const m = localStorage.getItem('svoya_mode');
     if(m) document.documentElement.setAttribute('data-mode', m);
   }
@@ -1261,52 +1709,30 @@ function closeModal() {
         GAME = JSON.parse(JSON.stringify(DEFAULT_GAME));
         TEAMS = {};
         catsPage = 0;
+        GAME_STATS = { asked: 0, correct: 0, wrong: 0, pass: 0 };
+        saveStats();
         saveState();
         render();
     }
   }
 
-  function getDeviceId() {
-    let id = localStorage.getItem('svoya_device_id');
-    if(!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('svoya_device_id', id); }
-    return id;
-  }
-  function loadLicense() {
-    const k = localStorage.getItem('svoyalicensev4');
-    if(k) parseLicense(k).then(l => {
-        LICENSE = l;
-        if(l) {
-            document.getElementById('appSubtitle').textContent = l.expired ? 'Лицензия истекла' : 'Лицензия активна';
-            if(!l.expired) els.licInfo.innerHTML = `ID: ${l.id}<br>До: ${new Date(l.exp).toLocaleDateString()}`;
-        }
-    });
-  }
-  function activateLicense() {
-    const key = document.getElementById('licenseInput').value.trim();
-    if(!key) return;
-    parseLicense(key).then(l => {
-        if(l && !l.expired) {
-            localStorage.setItem('svoyalicensev4', key);
-            location.reload();
-        } else {
-            document.getElementById('activateError').style.display = 'block';
-            document.getElementById('activateError').textContent = 'Неверный или истекший ключ';
-        }
-    });
-  }
-  
-  function hasFeature(f) {
-    if(!LICENSE || LICENSE.expired) return false;
-    return !LICENSE.features || LICENSE.features.includes(f);
-  }
-
   function exportGame() {
      const b = new Blob([JSON.stringify({game:GAME, teams:TEAMS})], {type:'application/json'});
-     const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'game.json'; a.click();
+     const url = URL.createObjectURL(b);
+     const a = document.createElement('a');
+     a.href = url;
+     a.download = 'game.json';
+     a.click();
+     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
   function exportLog() {
      const b = new Blob([gameLog.map(l=>`${l.time} ${l.message}`).join('\n')], {type:'text/plain'});
-     const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'log.txt'; a.click();
+     const url = URL.createObjectURL(b);
+     const a = document.createElement('a');
+     a.href = url;
+     a.download = 'log.txt';
+     a.click();
+     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   // Start
