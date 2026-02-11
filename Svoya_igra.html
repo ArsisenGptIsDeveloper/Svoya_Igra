@@ -1,0 +1,1830 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Своя игра</title>
+  <style>
+    /* --- НАСТРОЙКИ И ПЕРЕМЕННЫЕ --- */
+    :root {
+      --font: 'Segoe UI', Roboto, system-ui, sans-serif;
+      --radius: 16px;
+      
+      /* Dark Theme (Default) */
+      --bg-grad: radial-gradient(circle at 10% 20%, #1e293b 0%, #0f172a 90%);
+      --glass-bg: rgba(30, 41, 59, 0.65);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+      
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.4);
+      --accent-text: #0f172a;
+      
+      --cell-bg: #1e293b;
+      --cell-hover: #334155;
+      --cell-shadow: 0 4px 0 #0f172a;
+      --cell-active-shadow: 0 1px 0 #0f172a;
+
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warn: #eab308;
+
+      --menu-bg: #1e293b;
+      --menu-border: rgba(255,255,255,0.1);
+    }
+
+    [data-mode="light"] {
+      --bg-grad: linear-gradient(135deg, #f0f9ff 0%, #cbebff 100%);
+      --glass-bg: rgba(255, 255, 255, 0.75);
+      --glass-border: rgba(0, 0, 0, 0.08);
+      --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      
+      --text: #0f172a;
+      --text-muted: #64748b;
+      
+      --accent: #0284c7;
+      --accent-glow: rgba(2, 132, 199, 0.2);
+      --accent-text: #ffffff;
+      
+      --cell-bg: #ffffff;
+      --cell-hover: #f8fafc;
+      --cell-shadow: 0 4px 0 #cbd5e1;
+      --cell-active-shadow: 0 1px 0 #cbd5e1;
+      
+      --menu-bg: #ffffff;
+      --menu-border: rgba(0,0,0,0.1);
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg-grad);
+      color: var(--text);
+      min-height: 100vh;
+      background-attachment: fixed;
+    }
+
+    button { font-family: inherit; cursor: pointer; user-select: none; }
+    
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(150,150,150,0.3); border-radius: 4px; }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    /* --- КАРТОЧКИ --- */
+    .card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--card-shadow);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 50;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      background-clip: text;
+
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* --- КНОПКИ --- */
+    .btn {
+      border: none;
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    [data-mode="light"] .btn { background: rgba(0,0,0,0.06); }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      background: rgba(255,255,255,0.15);
+    }
+    [data-mode="light"] .btn:hover:not(:disabled) { background: rgba(0,0,0,0.1); }
+
+    .btn:active:not(:disabled) { transform: translateY(0); }
+
+    .btn.primary {
+      background: var(--accent);
+      color: var(--accent-text);
+      box-shadow: 0 4px 15px var(--accent-glow);
+    }
+    .btn.primary:hover:not(:disabled) {
+      filter: brightness(1.1);
+      box-shadow: 0 6px 20px var(--accent-glow);
+    }
+
+    .btn.danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+    .btn.danger:hover { background: var(--danger); color: white; }
+
+    .btn.success { background: var(--success); color: white; }
+    .btn.success:hover { background: #16a34a; }
+    
+    .btn.small { padding: 6px 12px; font-size: 12px; }
+
+    /* --- LAYOUT --- */
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr 280px;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+
+    /* --- КОМАНДЫ --- */
+    .team {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      border: 1px solid var(--glass-border);
+      transition: transform 0.2s;
+    }
+    [data-mode="light"] .team { background: rgba(255,255,255,0.5); }
+    .team:hover { transform: scale(1.02); }
+    
+    .team .score {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    /* --- ПОЛЕ --- */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+
+    .category {
+      padding: 12px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 2px solid transparent;
+    }
+
+    /* Радуга для категорий */
+    .board .category:nth-child(5n+1) { border-color: #f472b6; color: #f472b6; }
+    .board .category:nth-child(5n+2) { border-color: #a78bfa; color: #a78bfa; }
+    .board .category:nth-child(5n+3) { border-color: #38bdf8; color: #38bdf8; }
+    .board .category:nth-child(5n+4) { border-color: #34d399; color: #34d399; }
+    .board .category:nth-child(5n+5) { border-color: #fbbf24; color: #fbbf24; }
+    
+    [data-mode="light"] .board .category:nth-child(5n+1) { color: #db2777; border-color: #db2777; }
+    [data-mode="light"] .board .category:nth-child(5n+2) { color: #7c3aed; border-color: #7c3aed; }
+    [data-mode="light"] .board .category:nth-child(5n+3) { color: #0284c7; border-color: #0284c7; }
+    [data-mode="light"] .board .category:nth-child(5n+4) { color: #059669; border-color: #059669; }
+    [data-mode="light"] .board .category:nth-child(5n+5) { color: #d97706; border-color: #d97706; }
+
+    .cell {
+      aspect-ratio: 16/9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: var(--cell-bg);
+      color: var(--accent);
+      font-size: 28px;
+      font-weight: 800;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.1s;
+      box-shadow: var(--cell-shadow);
+      transform: translateY(0);
+      border: 1px solid var(--glass-border);
+    }
+
+    .cell:not(.locked):hover {
+      background: var(--cell-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 var(--text-muted);
+    }
+    
+    .cell:not(.locked):active {
+      transform: translateY(2px);
+      box-shadow: var(--cell-active-shadow);
+    }
+
+    .cell.locked {
+      background: transparent;
+      box-shadow: none;
+      border: 1px dashed var(--glass-border);
+      color: var(--text-muted);
+      opacity: 0.4;
+      cursor: default;
+      pointer-events: none;
+    }
+    .cell.locked.used::after { content: "✓"; font-size: 24px; opacity: 0.5; }
+    .cell.locked.empty { border: none; opacity: 0.1; }
+
+    /* --- ЛОГ --- */
+    .log {
+      height: 200px;
+      overflow-y: auto;
+      padding: 10px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: monospace;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    [data-mode="light"] .log { background: rgba(0,0,0,0.05); }
+
+    /* --- МЕНЮ --- */
+    .menu { position: relative; }
+    .menu-panel {
+      position: absolute;
+      top: 100%; right: 0; margin-top: 8px;
+      background: var(--menu-bg);
+      border: 1px solid var(--menu-border);
+      border-radius: 12px;
+      padding: 8px;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      width: 200px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      z-index: 100;
+    }
+    .menu-panel.open { display: flex; animation: fadeIn 0.1s ease-out; }
+    .menu-item {
+      text-align: left;
+      background: transparent;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      color: var(--text);
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .menu-item:hover { background: rgba(255,255,255,0.1); }
+    [data-mode="light"] .menu-item:hover { background: rgba(0,0,0,0.05); }
+    .menu-item.danger { color: var(--danger); }
+    .menu-item.danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+    /* --- МОДАЛКА --- */
+    .modal {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .modal .dialog {
+      background: var(--menu-bg);
+      width: min(1000px, 95vw);
+      height: 90vh;
+      border-radius: 24px;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      transform: scale(0.95);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .modal.open .dialog { transform: scale(1); opacity: 1; }
+
+    .qa-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--glass-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .qa-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .question-text {
+      font-size: clamp(24px, 4vw, 48px);
+      line-height: 1.3;
+      font-weight: 800;
+      max-width: 900px;
+    }
+    
+    .answer-box {
+      margin-top: 30px;
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid var(--success);
+      color: var(--success);
+      padding: 20px 30px;
+      border-radius: 16px;
+      font-size: 32px;
+      font-weight: 800;
+      display: none;
+      animation: slideUp 0.3s;
+    }
+    
+    .qa-footer {
+      padding: 20px;
+      border-top: 1px solid var(--glass-border);
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .timer { font-size: 32px; font-weight: 800; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    
+    .badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid var(--glass-border);
+    }
+    .badge.cat { color: var(--accent); border-color: var(--accent); }
+    .badge.cost { color: var(--warn); border-color: var(--warn); }
+    .badge.bag { background: var(--danger); color: white; border: none; }
+
+    /* Редактор */
+    #editorModal .dialog {
+      width: min(1100px, 95vw);
+      height: 92vh;
+      max-height: 92vh;
+    }
+    #editorModal .qa-body {
+      display: block;
+      overflow-y: auto;
+      max-height: calc(92vh - 150px);
+      padding-right: 12px;
+    }
+    .editor-grid { display: grid; gap: 12px; margin-bottom: 12px; }
+    input[type="text"], input[type="number"], input[type="password"] {
+      width: 100%; box-sizing: border-box;
+      padding: 10px; border-radius: 8px;
+      border: 1px solid var(--glass-border);
+      background: rgba(0,0,0,0.2);
+      color: inherit; font-family: inherit;
+    }
+    [data-mode="light"] input { background: #fff; border-color: #cbd5e1; }
+
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      display: none; align-items: center; justify-content: center; z-index: 2000;
+    }
+    .overlay-box {
+      background: var(--menu-bg); padding: 30px; border-radius: 20px; width: 400px;
+      border: 1px solid var(--glass-border); text-align: center;
+    }
+
+
+    .search-panel { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+    .search-panel input, .search-panel select { flex:1; min-width:180px; }
+    .search-results { max-height:180px; overflow:auto; border:1px solid var(--glass-border); border-radius:8px; padding:6px; }
+    .search-item { padding:8px; border-radius:8px; border:1px solid transparent; margin-bottom:6px; cursor:pointer; }
+    .search-item:hover { border-color: var(--accent); background: rgba(56,189,248,0.08); }
+    .editor-tools { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; align-items:center; }
+    .editor-tools .btn { white-space: nowrap; }
+    .section-title { font-size:12px; text-transform:uppercase; letter-spacing:.08em; opacity:.65; margin-bottom:6px; }
+    .controls-main { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+    .controls-main .btn { justify-content:center; }
+    .friendly-hint { font-size:12px; opacity:.7; line-height:1.35; }
+    .compact-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .q-media-preview { width:64px; height:40px; border:1px solid var(--glass-border); border-radius:6px; display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:11px; opacity:0.8; }
+    .q-media-preview img { width:100%; height:100%; object-fit:cover; }
+    .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:12px; margin-top:10px; }
+    .stats-grid > div { background: rgba(0,0,0,0.15); border:1px solid var(--glass-border); border-radius:8px; padding:8px; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+  
+    
+    /* --- PRINT VIEW (таблица вопросов/ответов) --- */
+    #printView { display: none; }
+    .print-page { background: white; color: black; padding: 18px; }
+    .print-page h1 { font-size: 18px; margin: 0 0 6px 0; }
+    .print-page .meta { font-size: 12px; opacity: 0.8; margin-bottom: 10px; }
+    .print-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .print-table th, .print-table td { border: 1px solid #333; padding: 6px; vertical-align: top; word-wrap: break-word; }
+    .print-table th { font-size: 12px; }
+    .print-val { width: 64px; text-align: center; font-weight: 700; }
+    .qa { font-size: 11px; line-height: 1.25; white-space: pre-wrap; }
+    .flags { margin-top: 6px; font-size: 10px; opacity: 0.85; }
+    .flag { display: inline-block; padding: 2px 6px; border: 1px solid #333; border-radius: 999px; margin-right: 6px; }
+    .flag.bag { background: #111; color: #fff; border-color: #111; }
+    .flag.used { text-decoration: line-through; opacity: 0.6; }
+
+    @media print {
+      #printView { display: block !important; }
+      /* hide the app UI */
+      body > .container { display: none !important; }
+      .print-page { page-break-after: always; }
+      .print-page:last-child { page-break-after: auto; }
+    }
+
+    /* --- ПЕЧАТЬ --- */
+    @media print {
+      body { background: #fff !important; color: #000 !important; }
+      .container { max-width: none; padding: 0; }
+      header, .controls, #boardPager, .menu, #teamSelectModal, #editorModal, #modal { display: none !important; }
+      .layout { grid-template-columns: 1fr !important; gap: 0 !important; }
+      .card { box-shadow: none !important; border: 1px solid #ccc !important; background: #fff !important; backdrop-filter: none !important; }
+      .board { gap: 8px !important; }
+      .cell { box-shadow: none !important; border: 1px solid #999 !important; color: #000 !important; }
+      .category { color: #000 !important; border-color: #000 !important; }
+      .cell.locked { opacity: 0.25 !important; }
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header class="card">
+    <div>
+      <h1>Своя игра</h1>
+      <div class="subtitle" id="appSubtitle" style="font-size:12px; opacity:0.7">Бесплатная версия</div>
+    </div>
+    
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button id="modeBtn" class="btn small">🌗 Тема</button>
+      <button id="editorBtn" class="btn primary small">✎ Редактор</button>
+      
+      <div class="menu">
+        <button id="menuBtn" class="btn small">☰ Меню</button>
+        <div id="menuPanel" class="menu-panel">
+          <button id="printBtn" class="menu-item">Печать</button>
+          <button id="exportBtn" class="menu-item">Экспорт JSON</button>
+          <button id="importBtn" class="menu-item">Импорт JSON</button>
+          <button id="exportCsvBtn" class="menu-item">Экспорт CSV</button>
+          <button id="importCsvBtn" class="menu-item">Импорт CSV</button>
+          <div style="height:1px; background:var(--glass-border); margin:4px 0"></div>
+          <button id="resetBtn" class="menu-item danger">Полный сброс</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <strong>Команды</strong>
+        <button id="addTeamBtn" class="btn small success">+</button>
+      </div>
+      <div class="teams" id="teamsList"></div>
+      
+      <div style="margin-top:20px; padding-top:12px; border-top:1px solid var(--glass-border); font-size:12px; color:var(--text-muted); display:flex; justify-content:space-between; align-items:center;">
+        <button id="startRoundBtn" class="btn">Новый раунд</button>
+        <button id="resetScoresBtn" class="btn">Сброс очков</button>
+        <span>Осталось вопросов: <b id="leftCount" style="color:var(--text)">0</b></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="boardPager" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;">
+        <button id="prevCatsBtn" class="btn small">◀ Категории</button>
+        <div style="font-size:12px; opacity:0.8;">
+          Страница: <b id="catsPageLabel">1</b> / <b id="catsPageTotal">1</b>
+          <span style="opacity:0.6;">(по 5 категорий)</span>
+        </div>
+        <button id="nextCatsBtn" class="btn small">Категории ▶</button>
+      </div>
+      <div class="section-title">Быстрый поиск вопроса</div>
+      <div class="search-panel">
+        <input id="boardSearch" type="text" placeholder="Введите часть вопроса, ответа или название категории" />
+        <select id="boardFilter">
+          <option value="all">Все вопросы</option>
+          <option value="unused">Только несыгранные</option>
+          <option value="bag">Только «Кот в мешке»</option>
+          <option value="media">Только с медиа</option>
+        </select>
+        <button id="clearSearchBtn" class="btn small">Очистить</button>
+      </div>
+      <div id="searchResults" class="search-results" style="display:none"></div>
+      <div id="board" class="board"></div>
+    </div>
+
+    <div class="card controls">
+      <div class="section-title">Панель ведущего</div>
+      <div class="controls-main">
+        <button id="revealBtn" class="btn">Показать все вопросы</button>
+        <button id="exportLogBtn" class="btn">Скачать лог</button>
+      </div>
+      <div class="friendly-hint" style="margin-bottom:8px;">Подсказка: используйте поиск выше, чтобы быстро перейти к нужному вопросу.</div>
+      <div class="section-title">Лог игры</div>
+      <div id="log" class="log"></div>
+      
+      <div style="border-top:1px solid var(--glass-border); padding-top:12px;">
+        <div style="font-size:12px; opacity:0.5; margin-bottom:4px;">СЧЁТ</div>
+        <div id="teamsState" style="line-height:1.4; font-size:13px;"></div>
+      </div>
+      <div style="border-top:1px solid var(--glass-border); padding-top:12px; margin-top:12px;">
+        <div style="font-size:12px; opacity:0.5; margin-bottom:4px;">Статистика партии</div>
+        <div id="gameStats" class="stats-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно вопроса -->
+<div id="modal" class="modal">
+  <div class="dialog">
+    <div class="qa-header">
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span id="badgeCat" class="badge cat">Категория</span>
+        <span id="badgeCost" class="badge cost">100</span>
+        <span id="badgeBag" class="badge bag" style="display:none">КОТ В МЕШКЕ</span>
+      </div>
+      <div class="timer" id="timer"></div>
+    </div>
+
+    <div class="qa-body">
+      <div id="questionMedia" style="margin-bottom:20px; max-width:100%; display:none;"></div>
+      <div class="question-text" id="questionText"></div>
+      
+      <div id="answerWrap" class="answer-box">
+        <div style="font-size:12px; opacity:0.6; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Ответ</div>
+        <div id="answerText"></div>
+      </div>
+    </div>
+
+    <div class="qa-footer">
+      <button id="correctBtn" class="btn success" style="padding:12px 24px; font-size:16px;">✅ Верно</button>
+      <button id="wrongBtn" class="btn danger" style="padding:12px 24px; font-size:16px;">⛔ Неверно</button>
+      <div style="width:20px"></div>
+      <button id="passBtn" class="btn">⏭ Пропуск</button>
+      <div style="flex:1"></div>
+      <button id="toggleAnswerBtn" class="btn primary">Показать ответ</button>
+      <button id="closeModal" class="btn">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка выбора команды -->
+<div id="teamSelectModal" class="overlay" style="z-index:1100">
+  <div class="overlay-box">
+    <h3 id="teamSelectTitle" style="margin-top:0">Выберите команду</h3>
+    <select id="teamSelect" style="width:100%; padding:12px; font-size:16px; margin-bottom:20px;"></select>
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <button id="teamSelectOk" class="btn primary">ОК</button>
+      <button id="teamSelectCancel" class="btn">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка редактора -->
+<div id="editorModal" class="modal">
+  <div class="dialog">
+    <div class="qa-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <h2 style="margin:0">Редактор</h2>
+        <button id="undoEditor" class="btn small">↶ Отменить</button>
+        <button id="redoEditor" class="btn small">↷ Повторить</button>
+      </div>
+      <button id="saveEditor" class="btn primary small">💾 Сохранить</button>
+    </div>
+    <div class="qa-body" style="align-items:stretch; text-align:left;">
+      <div class="editor-grid">
+        <label>Название игры <input type="text" id="gameTitleInput" /></label>
+        <label>Таймер (сек) <input type="number" id="timerInput" style="width:100px" /></label>
+      </div>
+      <div style="display:flex; gap:15px; margin-bottom:15px; font-size:14px;">
+        <label><input type="checkbox" id="allowNegative" /> Минусовать очки</label>
+        <label><input type="checkbox" id="autoDeduct" /> Штраф за ошибку</label>
+        <label><input type="checkbox" id="singleTeam" /> Режим "1 игрок"</label>
+      </div>
+      
+      <div class="section-title">Поиск и фильтр в редакторе</div>
+      <div class="editor-tools">
+        <input id="editorSearch" type="text" placeholder="Фильтр по тексту вопроса/ответа" />
+        <select id="editorFilter">
+          <option value="all">Все вопросы</option>
+          <option value="unused">Только несыгранные</option>
+          <option value="bag">Только «Кот в мешке»</option>
+          <option value="media">Только с медиа</option>
+        </select>
+        <button id="clearEditorSearch" class="btn small">Очистить</button>
+      </div>
+      <div class="note" style="font-size:12px; opacity:0.85; margin-bottom:10px;">Можно вставить ссылку на медиа или загрузить файл. Черновик редактора сохраняется автоматически.</div>
+      <div id="categoriesEditor"></div>
+      <button id="addCategoryBtn" class="btn small" style="width:100%; margin-top:10px;">+ Категория</button>
+    </div>
+    <div class="qa-footer" style="justify-content:flex-end">
+      <button id="cancelEditor" class="btn">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* --- JS LOGIC --- */
+  // --- PAGINATION (категории) ---
+  const CATS_PER_PAGE = 5;
+  let catsPage = 0;
+
+
+  const DEFAULT_GAME = {
+    title: 'Своя игра',
+    timer: 20,
+    settings: { allowNegative: true, autoDeduct: true, singleTeam: false },
+    categories: {
+      'Разминка': [
+        { value: 100, q: 'Сколько цветов в радуге?', a: '7', used: false },
+        { value: 200, q: 'Столица России?', a: 'Москва', used: false },
+        { value: 300, q: 'Самая быстрая птица?', a: 'Сапсан', used: false }
+      ],
+      'Кино': [
+        { value: 100, q: 'Имя Терминатора?', a: 'T-800', used: false }
+      ]
+    }
+  };
+
+  let GAME = null, TEAMS = {}, current = null;
+  let timerInterval = null, timerLeft = 0;
+  let teamSelectCallback = null, gameLog = [];
+  let pendingFileReads = 0;
+  let GAME_STATS = { asked: 0, correct: 0, wrong: 0, pass: 0 };
+  let editorHistory = [];
+  let editorFuture = [];
+  let editorAutosaveTimer = null;
+  let releaseFocusTrap = null;
+
+  const I18N = {
+    ru: { themeDark: '🌚 Тёмная', themeLight: '🌞 Светлая' }
+  };
+
+  // DOM Elements
+  const els = {
+    board: document.getElementById('board'),
+    teams: document.getElementById('teamsList'),
+    leftCount: document.getElementById('leftCount'),
+    log: document.getElementById('log'),
+    teamsState: document.getElementById('teamsState'),
+    stats: document.getElementById('gameStats'),
+    modal: document.getElementById('modal'),
+    qText: document.getElementById('questionText'),
+    qMedia: document.getElementById('questionMedia'),
+    ansWrap: document.getElementById('answerWrap'),
+    ansText: document.getElementById('answerText'),
+    timer: document.getElementById('timer'),
+    editor: document.getElementById('editorModal'),
+    catEditor: document.getElementById('categoriesEditor'),
+    menu: document.getElementById('menuPanel'),
+    badges: { cat: document.getElementById('badgeCat'), cost: document.getElementById('badgeCost'), bag: document.getElementById('badgeBag') }
+  };
+
+  // --- UTILS ---
+  const nowISO = () => new Date().toISOString();
+  const safeInt = (x, def) => Number.isFinite(parseInt(x,10)) ? parseInt(x,10) : def;
+  // Escape HTML special characters to prevent injection when rendering user-controlled strings
+  const escapeHtml = (s) => {
+    return String(s ?? '').replace(/[&<>]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c] || c));
+  };
+  const log = (txt) => {
+    const time = new Date().toLocaleTimeString();
+    // Sanitize log text to avoid injecting HTML into the log display
+    const safeTxt = escapeHtml(txt);
+    els.log.insertAdjacentHTML('afterbegin', `<div><span style="opacity:0.5;margin-right:6px">${time}</span> ${safeTxt}</div>`);
+    gameLog.push({time: nowISO(), message: txt});
+  };
+
+  function setEditorSaveBusy(isBusy) {
+    const btn = document.getElementById('saveEditor');
+    if(!btn) return;
+    btn.disabled = !!isBusy;
+    btn.textContent = isBusy ? '⏳ Обработка файлов...' : '💾 Сохранить';
+  }
+
+  const toBool = (v) => v === true || v === 1 || v === '1' || v === 'true';
+  const debounce = (fn, ms=200) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+  const approxBase64Size = (b64) => Math.ceil((String(b64 || '').length * 3) / 4);
+
+  function activateFocusTrap(root) {
+    if(!root) return () => {};
+    const sel = 'button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])';
+    const onKey = (e) => {
+      if(e.key !== 'Tab') return;
+      const items = Array.from(root.querySelectorAll(sel)).filter((el) => !el.disabled && el.offsetParent !== null);
+      if(!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      if(e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    root.addEventListener('keydown', onKey);
+    const initial = root.querySelector(sel);
+    if(initial) initial.focus();
+    return () => root.removeEventListener('keydown', onKey);
+  }
+
+  function saveStats() {
+    try { localStorage.setItem('svoya_stats_v1', JSON.stringify(GAME_STATS)); } catch(e) {}
+  }
+
+  function loadStats() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('svoya_stats_v1') || '{}');
+      GAME_STATS = {
+        asked: safeInt(raw.asked, 0),
+        correct: safeInt(raw.correct, 0),
+        wrong: safeInt(raw.wrong, 0),
+        pass: safeInt(raw.pass, 0)
+      };
+    } catch(e) {
+      GAME_STATS = { asked: 0, correct: 0, wrong: 0, pass: 0 };
+    }
+  }
+
+  function renderStats() {
+    if(!els.stats) return;
+    const total = Math.max(1, GAME_STATS.correct + GAME_STATS.wrong);
+    const accuracy = Math.round((GAME_STATS.correct / total) * 100);
+    els.stats.innerHTML = `
+      <div>Открыто: <b>${GAME_STATS.asked}</b></div>
+      <div>Верно: <b>${GAME_STATS.correct}</b></div>
+      <div>Неверно: <b>${GAME_STATS.wrong}</b></div>
+      <div>Пас: <b>${GAME_STATS.pass}</b></div>
+      <div style="grid-column:1 / -1">Точность: <b>${accuracy}%</b></div>
+    `;
+  }
+
+  function getAllQuestionsFlat() {
+    const out = [];
+    Object.entries(GAME.categories || {}).forEach(([cat, arr]) => {
+      (arr || []).forEach((q, idx) => out.push({ cat, q, idx }));
+    });
+    return out;
+  }
+
+  function renderSearchResults() {
+    const wrap = document.getElementById('searchResults');
+    const inp = document.getElementById('boardSearch');
+    const f = document.getElementById('boardFilter');
+    if(!wrap || !inp || !f) return;
+    const query = String(inp.value || '').trim().toLowerCase();
+    const filter = f.value || 'all';
+    const rows = getAllQuestionsFlat().filter(({q, cat}) => {
+      const hit = !query || [cat, q.q, q.a, q.value].join(' ').toLowerCase().includes(query);
+      if(!hit) return false;
+      if(filter === 'unused') return !q.used;
+      if(filter === 'bag') return !!q.bag;
+      if(filter === 'media') return !!(q.media && String(q.media).trim());
+      return true;
+    }).slice(0, 120);
+
+    if(!query && filter === 'all') {
+      wrap.style.display = 'none';
+      wrap.innerHTML = '';
+      return;
+    }
+
+    wrap.style.display = 'block';
+    if(!rows.length) {
+      wrap.innerHTML = '<div style="opacity:0.7; padding:8px">Ничего не найдено</div>';
+      return;
+    }
+    wrap.innerHTML = rows.map(({cat,q}) => `<div class="search-item" data-cat="${escapeHtml(cat)}" data-val="${q.value}"><b>${escapeHtml(cat)}</b> · ${q.value}<br><span style="opacity:0.8">${escapeHtml(String(q.q||''))}</span></div>`).join('');
+    wrap.querySelectorAll('.search-item').forEach((el) => {
+      el.onclick = () => {
+        const cat = el.getAttribute('data-cat');
+        const val = safeInt(el.getAttribute('data-val'), 0);
+        const arr = GAME.categories[cat] || [];
+        const found = arr.find((x) => safeInt(x.value,0) === val);
+        if(!found || found.used) return;
+        const cats = Object.keys(GAME.categories);
+        const page = Math.floor(cats.indexOf(cat) / CATS_PER_PAGE);
+        if(page >= 0) catsPage = page;
+        render();
+        if(!found.used) openQuestion(cat, found);
+      };
+    });
+  }
+
+  function serializeEditorState() {
+    const state = {
+      title: document.getElementById('gameTitleInput')?.value || GAME.title,
+      timer: safeInt(document.getElementById('timerInput')?.value, GAME.timer),
+      settings: {
+        allowNegative: !!document.getElementById('allowNegative')?.checked,
+        autoDeduct: !!document.getElementById('autoDeduct')?.checked,
+        singleTeam: !!document.getElementById('singleTeam')?.checked
+      },
+      categories: []
+    };
+    Array.from(els.catEditor.children).forEach((div) => {
+      state.categories.push({
+        name: String(div.querySelector('.cat-name')?.value || ''),
+        questions: JSON.parse(JSON.stringify(div.qData || []))
+      });
+    });
+    return state;
+  }
+
+  function applyEditorState(state) {
+    if(!state) return;
+    document.getElementById('gameTitleInput').value = state.title || '';
+    document.getElementById('timerInput').value = safeInt(state.timer, 20);
+    document.getElementById('allowNegative').checked = !!(state.settings && state.settings.allowNegative);
+    document.getElementById('autoDeduct').checked = !!(state.settings && state.settings.autoDeduct);
+    document.getElementById('singleTeam').checked = !!(state.settings && state.settings.singleTeam);
+    els.catEditor.innerHTML = '';
+    (state.categories || []).forEach((c) => addCategoryEditorBlock(c.name || 'Категория', c.questions || []));
+  }
+
+  function pushEditorHistory() {
+    editorHistory.push(serializeEditorState());
+    if(editorHistory.length > 60) editorHistory.shift();
+    editorFuture = [];
+  }
+
+  function markEditorChanged() {
+    pushEditorHistory();
+    clearTimeout(editorAutosaveTimer);
+    editorAutosaveTimer = setTimeout(() => {
+      try { localStorage.setItem('svoya_editor_draft_v1', JSON.stringify(serializeEditorState())); } catch(e) {}
+    }, 250);
+  }
+
+  function applyEditorRowFilters() {
+    const q = String(document.getElementById('editorSearch')?.value || '').trim().toLowerCase();
+    const f = String(document.getElementById('editorFilter')?.value || 'all');
+    document.querySelectorAll('#categoriesEditor .q-row').forEach((row) => {
+      const txt = [
+        row.querySelector('.q-txt')?.value || '',
+        row.querySelector('.q-ans')?.value || '',
+        row.closest('.card')?.querySelector('.cat-name')?.value || ''
+      ].join(' ').toLowerCase();
+      const hasMedia = !!(row.querySelector('.q-media-badge')?.textContent || '').trim();
+      const isBag = !!row.querySelector('.q-bag')?.checked;
+      const isUnused = true;
+      const byQuery = !q || txt.includes(q);
+      let byFilter = true;
+      if(f === 'media') byFilter = hasMedia;
+      else if(f === 'bag') byFilter = isBag;
+      else if(f === 'unused') byFilter = isUnused;
+      row.style.display = (byQuery && byFilter) ? 'flex' : 'none';
+    });
+  }
+
+  function exportCsv() {
+    const lines = ['category,value,question,answer,bag,used,timerSec,media,mediaName,mediaType'];
+    const esc = (v) => `"${String(v ?? '').replace(/"/g,'""')}"`;
+    Object.entries(GAME.categories || {}).forEach(([cat, arr]) => {
+      (arr || []).forEach((q) => {
+        lines.push([cat,q.value,q.q,q.a,q.bag?1:0,q.used?1:0,q.timerSec||'',q.media||'',q.mediaName||'',q.mediaType||''].map(esc).join(','));
+      });
+    });
+    const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'game_template.csv'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  function parseCsvLine(line) {
+    const out = [];
+    let cur = '';
+    let q = false;
+    for(let i=0;i<line.length;i++) {
+      const ch = line[i];
+      if(ch === '"') {
+        if(q && line[i+1] === '"') { cur += '"'; i++; }
+        else q = !q;
+      } else if(ch === ',' && !q) {
+        out.push(cur); cur = '';
+      } else cur += ch;
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function importCsv() {
+    const i = document.createElement('input');
+    i.type = 'file';
+    i.accept = '.csv,text/csv';
+    i.onchange = (e) => {
+      const f = e.target.files && e.target.files[0];
+      if(!f) return;
+      const r = new FileReader();
+      r.onload = (ev) => {
+        try {
+          const txt = String(ev.target.result || '');
+          const lines = txt.split(/\r?\n/).filter(Boolean);
+          if(lines.length < 2) throw new Error('empty csv');
+          const map = {};
+          lines.slice(1).forEach((ln) => {
+            const c = parseCsvLine(ln);
+            const cat = String(c[0] || '').trim();
+            if(!cat) return;
+            if(!map[cat]) map[cat] = [];
+            map[cat].push({
+              value: Math.max(1, safeInt(c[1], 100)),
+              q: String(c[2] || ''),
+              a: String(c[3] || ''),
+              bag: toBool(c[4]),
+              used: toBool(c[5]),
+              timerSec: safeInt(c[6], 0) || undefined,
+              media: String(c[7] || '').trim(),
+              mediaName: String(c[8] || ''),
+              mediaType: String(c[9] || '')
+            });
+          });
+          Object.values(map).forEach(arr => arr.sort((a,b)=>a.value-b.value));
+          const catCount = Object.keys(map).length;
+          const qCount = Object.values(map).reduce((n, arr) => n + arr.length, 0);
+          if(!confirm(`Импортировать CSV?\nКатегорий: ${catCount}\nВопросов: ${qCount}`)) return;
+          GAME.categories = map;
+          catsPage = 0;
+          saveState();
+          render();
+          log('Импорт CSV завершен');
+        } catch (err) {
+          console.error(err);
+          alert('Ошибка CSV: проверьте формат файла.');
+        }
+      };
+      r.readAsText(f);
+    };
+    i.click();
+  }
+
+  // --- CORE ---
+  function init() {
+    loadState();
+    loadStats();
+    applyMode(); // Now properly defined below
+    render();
+    
+    // Global Listeners
+    document.addEventListener('click', e => { if(!e.target.closest('.menu')) els.menu.classList.remove('open'); });
+    document.getElementById('menuBtn').onclick = () => els.menu.classList.toggle('open');
+    const params = new URLSearchParams(location.search);
+    const appMode = params.get('mode');
+    if(appMode === 'screen') {
+      document.querySelector('.controls')?.style.setProperty('display', 'none');
+      document.querySelector('header .menu')?.style.setProperty('display', 'none');
+      document.getElementById('editorBtn')?.style.setProperty('display', 'none');
+      document.getElementById('modeBtn')?.style.setProperty('display', 'none');
+    }
+    if(appMode === 'host') {
+      document.body.setAttribute('data-app-mode', 'host');
+    }
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape') {
+        if(els.modal.style.display === 'flex') closeModal();
+        if(els.editor.style.display === 'flex') { els.editor.classList.remove('open'); setTimeout(() => { els.editor.style.display = 'none'; }, 300); }
+        const teamModal = document.getElementById('teamSelectModal');
+        if(teamModal && teamModal.style.display === 'flex') teamModal.style.display = 'none';
+      }
+    });
+    document.getElementById('modeBtn').onclick = toggleMode;
+    document.getElementById('resetBtn').onclick = resetGame;
+    document.getElementById('printBtn').onclick = () => {
+      // Печать: генерируем таблицы по страницам категорий (по 5) и печатаем
+      els.menu.classList.remove('open');
+      buildPrintView();
+      setTimeout(() => window.print(), 50);
+    };
+
+    // Пейджер категорий
+    document.getElementById('prevCatsBtn').onclick = () => { catsPage = Math.max(0, catsPage - 1); render(); };
+    document.getElementById('nextCatsBtn').onclick = () => {
+      const total = Math.max(1, Math.ceil(Object.keys(GAME.categories).length / CATS_PER_PAGE));
+      catsPage = Math.min(total - 1, catsPage + 1);
+      render();
+    };
+
+
+    const boardSearch = document.getElementById('boardSearch');
+    const boardFilter = document.getElementById('boardFilter');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    if(boardSearch) boardSearch.oninput = debounce(renderSearchResults, 180);
+    if(boardFilter) boardFilter.onchange = renderSearchResults;
+    if(clearSearchBtn) clearSearchBtn.onclick = () => {
+      if(boardSearch) boardSearch.value = '';
+      if(boardFilter) boardFilter.value = 'all';
+      renderSearchResults();
+    };
+
+    
+    // Modal controls
+    document.getElementById('closeModal').onclick = closeModal;
+    document.getElementById('toggleAnswerBtn').onclick = toggleAnswer;
+    document.getElementById('correctBtn').onclick = () => handleAnswer(true);
+    document.getElementById('wrongBtn').onclick = () => handleAnswer(false);
+    document.getElementById('passBtn').onclick = () => {
+      if(current && current.ref) current.ref.used = true;
+      GAME_STATS.pass++;
+      saveStats();
+      log('Пропуск');
+      saveState();
+      render();
+      closeModal();
+    };
+    
+    // Editor controls
+    document.getElementById('editorBtn').onclick = openEditor;
+    document.getElementById('saveEditor').onclick = saveEditor;
+    document.getElementById('cancelEditor').onclick = () => {
+      // Hide editor modal gracefully with animation
+      els.editor.classList.remove('open');
+      setTimeout(() => { els.editor.style.display = 'none'; }, 300);
+      if(releaseFocusTrap) { releaseFocusTrap(); releaseFocusTrap = null; }
+    };
+    document.getElementById('addCategoryBtn').onclick = () => { addCategoryEditorBlock('Новая', []); markEditorChanged(); };
+    document.getElementById('undoEditor').onclick = () => {
+      if(editorHistory.length < 2) return;
+      const currentState = editorHistory.pop();
+      editorFuture.push(currentState);
+      applyEditorState(editorHistory[editorHistory.length - 1]);
+      applyEditorRowFilters();
+    };
+    document.getElementById('redoEditor').onclick = () => {
+      if(!editorFuture.length) return;
+      const st = editorFuture.pop();
+      applyEditorState(st);
+      editorHistory.push(serializeEditorState());
+      applyEditorRowFilters();
+    };
+    document.getElementById('editorSearch').oninput = debounce(applyEditorRowFilters, 180);
+    document.getElementById('editorFilter').onchange = applyEditorRowFilters;
+    document.getElementById('clearEditorSearch').onclick = () => {
+      document.getElementById('editorSearch').value = '';
+      document.getElementById('editorFilter').value = 'all';
+      applyEditorRowFilters();
+    };
+    
+    // Teams
+    document.getElementById('addTeamBtn').onclick = addTeam;
+    document.getElementById('teamSelectOk').onclick = () => {
+      const val = document.getElementById('teamSelect').value;
+      document.getElementById('teamSelectModal').style.display = 'none';
+      if(teamSelectCallback) teamSelectCallback(val);
+    };
+    document.getElementById('teamSelectCancel').onclick = () => document.getElementById('teamSelectModal').style.display = 'none';
+    
+    // Other menu
+    document.getElementById('exportLogBtn').onclick = exportLog;
+    document.getElementById('startRoundBtn').onclick = () => {
+      if(!confirm('Начать новый раунд? Это сбросит сыгранность вопросов.')) return;
+      if(confirm('Сохранить текущую партию в JSON перед сбросом?')) exportGame();
+      Object.values(GAME.categories).forEach(c=>c.forEach(q=>q.used=false));
+      saveState();
+      render();
+      log('Новый раунд');
+    };
+    document.getElementById('resetScoresBtn').onclick = () => {
+      if(!confirm('Сбросить очки всех команд?')) return;
+      Object.keys(TEAMS).forEach((k) => { TEAMS[k].score = 0; });
+      saveState();
+      render();
+      log('Очки команд сброшены');
+    };
+    document.getElementById('revealBtn').onclick = () => { Object.values(GAME.categories).forEach(c=>c.forEach(q=>q.used=true)); saveState(); render(); };
+    document.getElementById('exportBtn').onclick = exportGame;
+    document.getElementById('exportCsvBtn').onclick = exportCsv;
+    document.getElementById('importCsvBtn').onclick = importCsv;
+    document.querySelectorAll('button').forEach((b) => { if(!b.getAttribute('aria-label')) b.setAttribute('aria-label', b.textContent.trim()); });
+
+    document.getElementById('importBtn').onclick = () => {
+        const i = document.createElement('input');
+        i.type = 'file';
+        i.accept = '.json,application/json';
+        i.onchange = (e) => {
+            const f = e.target.files && e.target.files[0];
+            if(!f) return;
+            const r = new FileReader();
+            r.onload = (ev) => {
+              try {
+                const data = JSON.parse(String(ev.target.result || '{}'));
+                const nextGame = normalizeGame(data.game);
+                const nextTeams = normalizeTeams(data.teams);
+                const catCount = Object.keys(nextGame.categories || {}).length;
+                const qCount = Object.values(nextGame.categories || {}).reduce((n, arr) => n + (arr ? arr.length : 0), 0);
+                if(!confirm(`Импортировать JSON?\nКатегорий: ${catCount}\nВопросов: ${qCount}`)) return;
+                GAME = nextGame;
+                TEAMS = nextTeams;
+                catsPage = 0;
+                saveState();
+                render();
+                log('Импорт завершен');
+              } catch (x) {
+                console.error('Import failed', x);
+                alert('Ошибка файла: проверьте формат JSON.');
+              }
+            };
+            r.readAsText(f);
+        };
+        i.click();
+    };
+  }
+
+  // --- RENDER & STATE ---
+  function render() {
+    // Board
+    els.board.innerHTML = '';
+    const allCats = Object.keys(GAME.categories);
+    const totalPages = Math.max(1, Math.ceil(allCats.length / CATS_PER_PAGE));
+    if(catsPage > totalPages - 1) catsPage = totalPages - 1;
+    const start = catsPage * CATS_PER_PAGE;
+    const cats = allCats.slice(start, start + CATS_PER_PAGE);
+    const pageLabel = document.getElementById('catsPageLabel');
+    const pageTotal = document.getElementById('catsPageTotal');
+    if(pageLabel && pageTotal) { pageLabel.textContent = String(catsPage + 1); pageTotal.textContent = String(totalPages); }
+    const prevBtn = document.getElementById('prevCatsBtn');
+    const nextBtn = document.getElementById('nextCatsBtn');
+    if(prevBtn && nextBtn) { prevBtn.disabled = (catsPage <= 0); nextBtn.disabled = (catsPage >= totalPages - 1); }
+
+    const pager = document.getElementById('boardPager');
+    if(pager) pager.style.display = (Object.keys(GAME.categories).length > CATS_PER_PAGE) ? 'flex' : 'none';
+    if(!cats.length) return;
+    const maxQ = Math.max(...cats.map(c=>GAME.categories[c].length));
+    
+    els.board.style.gridTemplateColumns = `repeat(${cats.length}, 1fr)`;
+    
+    cats.forEach(c => {
+        const h = document.createElement('div'); h.className='category'; h.textContent=c;
+        els.board.appendChild(h);
+    });
+
+    for(let i=0; i<maxQ; i++) {
+        cats.forEach(c => {
+            const q = GAME.categories[c][i];
+            const cell = document.createElement('div');
+            if(q) {
+                cell.className = `cell ${q.used ? 'locked used' : ''}`;
+                cell.textContent = q.used ? '' : q.value;
+                if(!q.used) cell.onclick = () => openQuestion(c, q);
+            } else {
+                cell.className = 'cell locked empty';
+            }
+            els.board.appendChild(cell);
+        });
+    }
+
+    // Teams
+    els.teams.innerHTML = '';
+    Object.keys(TEAMS).forEach(name => {
+        const t = TEAMS[name];
+        const div = document.createElement('div'); div.className='team';
+        // Escape team name before inserting into HTML to avoid XSS
+        div.innerHTML = `<span style="font-weight:600">${escapeHtml(name)}</span><span class="score">${t.score}</span>`;
+        const btn = document.createElement('button'); btn.className='btn small danger'; btn.innerHTML='×';
+        btn.style.marginLeft='10px'; btn.onclick=()=> { if(confirm('Удалить?')) { delete TEAMS[name]; saveState(); render(); }};
+        div.appendChild(btn);
+        els.teams.appendChild(div);
+    });
+
+    // Stats
+    els.teamsState.innerHTML = Object.entries(TEAMS).map(([n,t]) => `<div>${escapeHtml(n)}: <b>${t.score}</b></div>`).join('');
+    let left = 0; Object.values(GAME.categories).forEach(l=>l.forEach(q=> !q.used && left++));
+    els.leftCount.textContent = left;
+    
+    document.querySelector('h1').textContent = GAME.title || 'Своя игра';
+    renderStats();
+    renderSearchResults();
+  }
+
+// Метод openQuestion()
+function openQuestion(cat, q) {
+    current = { ...q, cat, ref: q };
+    els.modal.style.display = 'flex';
+    requestAnimationFrame(() => els.modal.classList.add('open'));
+    if(releaseFocusTrap) { releaseFocusTrap(); releaseFocusTrap = null; }
+    releaseFocusTrap = activateFocusTrap(els.modal);
+    
+    els.badges.cat.textContent = cat;
+    els.badges.cost.textContent = q.value;
+    els.badges.bag.style.display = q.bag ? 'inline-block' : 'none';
+    
+    els.qText.textContent = q.q;
+    els.ansText.textContent = q.a;
+    els.ansWrap.style.display = 'none';
+    document.getElementById('toggleAnswerBtn').textContent = 'Показать ответ';
+
+    // Проверяем наличие медиа
+    els.qMedia.innerHTML = '';
+    els.qMedia.style.display = 'none';
+    const media = String(q.media ?? '').trim();
+if(media) {
+    els.qMedia.style.display = 'block';
+    const kind = (() => {
+        const mediaType = String(q.mediaType || '').toLowerCase();
+        if(mediaType.startsWith('image/')) return 'image';
+        if(mediaType.startsWith('video/')) return 'video';
+        if(mediaType.startsWith('audio/')) return 'audio';
+        const u = media.toLowerCase();
+        if(u.startsWith('data:')) {
+            const mime = u.slice(5, u.indexOf(';') > -1 ? u.indexOf(';') : u.length);
+            const top = mime.split('/')[0];
+            if(top === 'video') return 'video';
+            if(top === 'audio') return 'audio';
+            if(top === 'image') return 'image';
+            return 'link';
+        }
+        if(/\.(mp4|webm|ogv)(\?|#|$)/i.test(u)) return 'video';
+        if(/\.(mp3|wav|ogg|m4a)(\?|#|$)/i.test(u)) return 'audio';
+        if(/\.(png|jpe?g|gif|webp|bmp|svg)(\?|#|$)/i.test(u)) return 'image';
+        return 'link';
+    })();
+
+    if(q.mediaName) {
+      const label = document.createElement('div');
+      label.style.cssText = 'font-size:12px; opacity:0.8; margin-bottom:6px';
+      label.textContent = String(q.mediaName);
+      els.qMedia.appendChild(label);
+    }
+
+    if(kind === 'video') {
+      const video = document.createElement('video');
+      video.src = media;
+      video.controls = true;
+      video.style.cssText = 'max-height:40vh; border-radius:12px; width:100%';
+      els.qMedia.appendChild(video);
+    } else if(kind === 'audio') {
+      const audio = document.createElement('audio');
+      audio.src = media;
+      audio.controls = true;
+      audio.style.width = '100%';
+      els.qMedia.appendChild(audio);
+    } else if(kind === 'image') {
+      const img = document.createElement('img');
+      img.src = media;
+      img.alt = 'Изображение';
+      img.style.cssText = 'max-height:40vh; border-radius:12px; max-width:100%';
+      els.qMedia.appendChild(img);
+    } else {
+      const link = document.createElement('a');
+      link.href = media;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.style.color = 'var(--accent)';
+      link.textContent = 'Открыть медиа';
+      els.qMedia.appendChild(link);
+    }
+}
+
+    startTimer(q.timerSec);
+    GAME_STATS.asked++;
+    saveStats();
+    log(`Вопрос: ${cat} - ${q.value}`);
+}
+
+  
+  function buildPrintView() {
+    const pv = document.getElementById('printView');
+    if(!pv) return;
+    const allCats = Object.keys(GAME.categories || {});
+    const totalPages = Math.max(1, Math.ceil(allCats.length / CATS_PER_PAGE));
+    const now = new Date();
+    const ts = now.toLocaleString();
+
+    // Build pages
+    let htmlOut = '';
+    for(let p=0; p<totalPages; p++) {
+      const start = p * CATS_PER_PAGE;
+      const cats = allCats.slice(start, start + CATS_PER_PAGE);
+
+      // Collect unique values across these categories
+      const valuesSet = new Set();
+      cats.forEach(c => (GAME.categories[c] || []).forEach(q => valuesSet.add(q.value)));
+      const values = Array.from(valuesSet).sort((a,b)=>a-b);
+
+      htmlOut += `<div class="print-page">
+        <h1>${escapeHtml(GAME.title || 'Своя игра')} · Страница категорий ${p+1}/${totalPages}</h1>
+        <div class="meta">Сформировано: ${escapeHtml(ts)} · Категорий на странице: ${cats.length}</div>
+        <table class="print-table">
+          <thead>
+            <tr>
+              <th class="print-val">Цена</th>
+              ${cats.map(c => `<th>${escapeHtml(c)}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${values.map(v => {
+              return `<tr>
+                <td class="print-val">${v}</td>
+                ${cats.map(c => {
+                  const arr = GAME.categories[c] || [];
+                  const q = arr.find(x => x.value === v);
+                  if(!q) return `<td></td>`;
+                  const flags = [
+                    q.bag ? '<span class="flag bag">КОТ</span>' : '',
+                    q.media ? '<span class="flag">МЕДИА</span>' : '',
+                    q.used ? '<span class="flag used">Сыграно</span>' : ''
+                  ].filter(Boolean).join('');
+                  const body = `В: ${q.q ?? ''}\nО: ${q.a ?? ''}`;
+                  return `<td>
+                    <div class="qa">${escapeHtml(body)}</div>
+                    ${flags ? `<div class="flags">${flags}</div>` : ''}
+                  </td>`;
+                }).join('')}
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    }
+
+    pv.innerHTML = htmlOut;
+  }
+
+function closeModal() {
+    els.modal.classList.remove('open');
+    setTimeout(() => els.modal.style.display = 'none', 300);
+    clearInterval(timerInterval);
+    if(releaseFocusTrap) { releaseFocusTrap(); releaseFocusTrap = null; }
+  }
+
+  function handleAnswer(isCorrect) {
+    const title = isCorrect ? 'Кому начислить?' : 'Кого оштрафовать?';
+    showTeamSelect(title, (team) => {
+        if(!TEAMS[team]) return;
+        const pts = isCorrect ? current.value : (GAME.settings.autoDeduct ? -current.value : 0);
+        if(isCorrect) GAME_STATS.correct++; else GAME_STATS.wrong++;
+        saveStats();
+        TEAMS[team].score += pts;
+        if(!GAME.settings.allowNegative && TEAMS[team].score < 0) TEAMS[team].score = 0;
+        
+        current.ref.used = true;
+        log(`${team}: ${pts > 0 ? '+' : ''}${pts}`);
+        saveState();
+        render();
+        closeModal();
+    });
+  }
+
+  function toggleAnswer() {
+    if(els.ansWrap.style.display === 'none') {
+        els.ansWrap.style.display = 'block';
+        document.getElementById('toggleAnswerBtn').textContent = 'Скрыть ответ';
+    } else {
+        els.ansWrap.style.display = 'none';
+        document.getElementById('toggleAnswerBtn').textContent = 'Показать ответ';
+    }
+  }
+
+  function showTeamSelect(title, cb) {
+    const keys = Object.keys(TEAMS);
+    if(!keys.length) { alert('Нет команд'); return; }
+    if(GAME.settings.singleTeam && keys.length === 1) { cb(keys[0]); return; }
+
+    document.getElementById('teamSelectTitle').textContent = title;
+    const sel = document.getElementById('teamSelect');
+    sel.innerHTML = keys.map(k => `<option value="${escapeHtml(k)}">${escapeHtml(k)}</option>`).join('');
+    teamSelectCallback = cb;
+    document.getElementById('teamSelectModal').style.display = 'flex';
+  }
+
+  // --- EDITOR ---
+  function openEditor() {
+    // Show the editor modal and animate its dialog
+    els.editor.style.display = 'flex';
+    // Use requestAnimationFrame to ensure CSS transitions trigger correctly
+    requestAnimationFrame(() => els.editor.classList.add('open'));
+    if(releaseFocusTrap) { releaseFocusTrap(); releaseFocusTrap = null; }
+    releaseFocusTrap = activateFocusTrap(els.editor);
+    document.getElementById('gameTitleInput').value = GAME.title;
+    document.getElementById('timerInput').value = GAME.timer;
+    document.getElementById('allowNegative').checked = GAME.settings.allowNegative;
+    document.getElementById('autoDeduct').checked = GAME.settings.autoDeduct;
+    document.getElementById('singleTeam').checked = GAME.settings.singleTeam;
+
+    els.catEditor.innerHTML = '';
+    Object.entries(GAME.categories).forEach(([name, qs]) => addCategoryEditorBlock(name, qs));
+    const draftRaw = localStorage.getItem('svoya_editor_draft_v1');
+    if(draftRaw) {
+      try {
+        const draft = JSON.parse(draftRaw);
+        if(draft && draft.categories && confirm('Найден автосохраненный черновик редактора. Восстановить?')) {
+          applyEditorState(draft);
+        }
+      } catch(e) {}
+    }
+    editorHistory = [serializeEditorState()];
+    editorFuture = [];
+    applyEditorRowFilters();
+    setEditorSaveBusy(false);
+  }
+
+  function addCategoryEditorBlock(name, questions) {
+    const div = document.createElement('div');
+    div.className = 'card'; div.style='margin-bottom:10px; padding:10px; background:rgba(0,0,0,0.1)';
+    div.innerHTML = `
+      <div style="display:flex; gap:10px; margin-bottom:10px">
+        <input type="text" class="cat-name" value="${escapeHtml(name)}" placeholder="Категория" style="font-weight:bold" />
+        <button class="btn small danger del-cat">Удалить</button>
+      </div>
+      <div class="q-list"></div>
+      <button class="btn small add-q" style="margin-top:5px">+ Вопрос</button>
+    `;
+    
+    const list = div.querySelector('.q-list');
+    const renderQs = (qs) => {
+        list.innerHTML = '';
+        qs.forEach((q, idx) => {
+            const row = document.createElement('div');
+            row.className = 'q-row';
+            row.style.cssText = 'display:flex; gap:6px; margin-bottom:6px; align-items:center; flex-wrap:wrap';
+
+            const hasDataMedia = String(q.media||'').startsWith('data:');
+            const mediaUrlValue = (!hasDataMedia && q.media) ? String(q.media) : '';
+            const mediaBadge = (q.media && String(q.media).trim()) ? '🎞️' : '';
+
+            row.innerHTML = `
+                <input type="number" class="q-val" value="${escapeHtml(q.value ?? 0)}" style="width:70px" />
+                <input type="text" class="q-txt" value="${escapeHtml(q.q ?? '')}" placeholder="Вопрос" style="flex:2; min-width:220px" />
+                <input type="text" class="q-ans" value="${escapeHtml(q.a ?? '')}" placeholder="Ответ" style="flex:2; min-width:220px" />
+                <input type="number" class="q-timer" value="${escapeHtml(q.timerSec ?? '')}" placeholder="Таймер" title="Таймер для этого вопроса (сек). Пусто = общий" style="width:90px" />
+                <label style="display:flex; align-items:center; gap:6px; font-size:12px; white-space:nowrap">
+                  <input type="checkbox" class="q-bag" ${q.bag ? 'checked' : ''} />
+                  КОТ
+                </label>
+                <span class="q-media-badge" style="font-size:12px; opacity:0.85; white-space:nowrap" title="Есть медиа">${mediaBadge}</span>
+                <div class="q-media-preview" title="Превью медиа"></div>
+                <input type="text" class="q-media-url" value="${escapeHtml(mediaUrlValue)}" placeholder="${hasDataMedia ? 'Медиа встроено (data)' : 'Медиа URL (опц.)'}" title="Ссылка на изображение/видео/аудио (опционально). Можно оставить пустым, если загрузили файл." style="flex:1; min-width:220px" />
+                <input type="file" class="q-media-file" accept="image/*,video/*,audio/*" title="Загрузить медиа в вопрос (встроится в файл как data:...)" style="max-width:220px" />
+                <button class="btn small del-media" title="Очистить медиа">🧹</button>
+                <button class="btn small danger del-q" title="Удалить вопрос">x</button>
+            `;
+
+            const valEl = row.querySelector('.q-val');
+            const qEl = row.querySelector('.q-txt');
+            const aEl = row.querySelector('.q-ans');
+            const tEl = row.querySelector('.q-timer');
+            const bagEl = row.querySelector('.q-bag');
+            const urlEl = row.querySelector('.q-media-url');
+            const fileEl = row.querySelector('.q-media-file');
+            const badgeEl = row.querySelector('.q-media-badge');
+            const previewEl = row.querySelector('.q-media-preview');
+
+            const refreshBadge = () => {
+              const med = String(q.media || '').trim();
+              badgeEl.textContent = med ? '🎞️' : '';
+              const isData = med.startsWith('data:');
+              if(isData) {
+                urlEl.value = '';
+                urlEl.placeholder = q.mediaName ? `Медиа встроено: ${q.mediaName}` : 'Медиа встроено (data)';
+              } else {
+                urlEl.placeholder = 'Медиа URL (опц.)';
+              }
+              if(!med) {
+                previewEl.textContent = '—';
+                previewEl.innerHTML = '—';
+              } else if((q.mediaType || '').startsWith('image/') || /^(data:image|https?:.*\.(png|jpe?g|gif|webp|bmp|svg))/i.test(med)) {
+                previewEl.innerHTML = `<img src="${escapeHtml(med)}" alt="preview" />`;
+              } else if((q.mediaType || '').startsWith('video/')) {
+                previewEl.innerHTML = '🎬';
+              } else if((q.mediaType || '').startsWith('audio/')) {
+                previewEl.innerHTML = '🎧';
+              } else {
+                previewEl.innerHTML = '🔗';
+              }
+              applyEditorRowFilters();
+            };
+
+            valEl.oninput = () => { q.value = safeInt(valEl.value, 100); markEditorChanged(); };
+            qEl.oninput = () => { q.q = qEl.value; markEditorChanged(); applyEditorRowFilters(); };
+            aEl.oninput = () => { q.a = aEl.value; markEditorChanged(); applyEditorRowFilters(); };
+            tEl.oninput = () => {
+              const v = String(tEl.value).trim();
+              q.timerSec = v ? safeInt(v, 0) : undefined;
+              markEditorChanged();
+            };
+            bagEl.onchange = () => { q.bag = !!bagEl.checked; markEditorChanged(); refreshBadge(); };
+
+            urlEl.oninput = () => {
+              const v = String(urlEl.value).trim();
+              q.media = v || '';
+              if(!v) { delete q.mediaName; delete q.mediaType; }
+              else { delete q.mediaType; }
+              refreshBadge();
+              markEditorChanged();
+            };
+
+            fileEl.onchange = () => {
+              const file = fileEl.files && fileEl.files[0];
+              if(!file) return;
+              const maxEmbed = 800 * 1024;
+              if(file.size > maxEmbed) {
+                alert('Файл больше 800KB. Для стабильности используйте URL-ссылку или сожмите файл.');
+                fileEl.value = '';
+                return;
+              }
+              pendingFileReads++;
+              setEditorSaveBusy(true);
+              const reader = new FileReader();
+              reader.onload = () => {
+                q.media = String(reader.result || '');
+                q.mediaName = file.name;
+                q.mediaType = file.type || '';
+                refreshBadge();
+                pendingFileReads = Math.max(0, pendingFileReads - 1);
+                if(pendingFileReads === 0) setEditorSaveBusy(false);
+                markEditorChanged();
+              };
+              reader.onerror = () => {
+                pendingFileReads = Math.max(0, pendingFileReads - 1);
+                if(pendingFileReads === 0) setEditorSaveBusy(false);
+                alert('Не удалось прочитать файл. Попробуйте другой.');
+              };
+              reader.readAsDataURL(file);
+            };
+
+            row.querySelector('.del-media').onclick = () => {
+              q.media = '';
+              delete q.mediaName;
+              delete q.mediaType;
+              fileEl.value = '';
+              urlEl.value = '';
+              refreshBadge();
+              markEditorChanged();
+            };
+
+            row.querySelector('.del-q').onclick = () => { qs.splice(idx,1); renderQs(qs); markEditorChanged(); };
+
+            // initialize placeholder/badge
+            refreshBadge();
+
+            list.appendChild(row);
+        });
+    };
+    
+    div.qData = JSON.parse(JSON.stringify(questions)); 
+    renderQs(div.qData);
+
+    div.querySelector('.add-q').onclick = () => {
+        const last = div.qData.length ? div.qData[div.qData.length-1].value : 0;
+        div.qData.push({value: last+100, q:'', a:'', used:false, bag:false, media:'', timerSec: undefined});
+        renderQs(div.qData);
+        markEditorChanged();
+    };
+    div.querySelector('.del-cat').onclick = () => { div.remove(); markEditorChanged(); };
+    
+    els.catEditor.appendChild(div);
+  }
+
+  function saveEditor() {
+    if(pendingFileReads > 0) {
+      alert('Подождите, пока загрузятся все выбранные файлы.');
+      return;
+    }
+    GAME.title = document.getElementById('gameTitleInput').value;
+    GAME.timer = safeInt(document.getElementById('timerInput').value, 20);
+    GAME.settings.allowNegative = document.getElementById('allowNegative').checked;
+    GAME.settings.autoDeduct = document.getElementById('autoDeduct').checked;
+    GAME.settings.singleTeam = document.getElementById('singleTeam').checked;
+
+    const newCats = {};
+    Array.from(els.catEditor.children).forEach(div => {
+        const name = div.querySelector('.cat-name').value.trim();
+        if(!name) return;
+        const qs = (div.qData || []).map(q => {
+            const out = {
+              value: safeInt(q.value, 100),
+              q: String(q.q ?? ''),
+              a: String(q.a ?? ''),
+              used: !!q.used
+            };
+            if(q.bag) out.bag = true;
+            const tm = safeInt(q.timerSec, 0);
+            if(tm > 0) out.timerSec = tm;
+            const med = String(q.media ?? '').trim();
+            if(med) out.media = med;
+            if(q.mediaName) out.mediaName = String(q.mediaName);
+            if(q.mediaType) out.mediaType = String(q.mediaType);
+            return out;
+        });
+        qs.sort((a,b) => a.value - b.value);
+        newCats[name] = qs;
+    });
+    
+    GAME.categories = newCats;
+    catsPage = 0;
+    localStorage.removeItem('svoya_editor_draft_v1');
+    saveState();
+    render();
+    // Hide editor modal with fade-out animation
+    els.editor.classList.remove('open');
+    setTimeout(() => { els.editor.style.display = 'none'; }, 300);
+    if(releaseFocusTrap) { releaseFocusTrap(); releaseFocusTrap = null; }
+  }
+
+  // --- HELPERS ---
+  function applyMode() {
+    const mode = localStorage.getItem('svoya_mode') || 'dark';
+    document.documentElement.setAttribute('data-mode', mode);
+    const btn = document.getElementById('modeBtn');
+    if(btn) btn.textContent = (mode === 'dark') ? I18N.ru.themeLight : I18N.ru.themeDark;
+  }
+
+  function toggleMode() {
+    const current = localStorage.getItem('svoya_mode') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('svoya_mode', next);
+    applyMode();
+  }
+
+  function startTimer(secondsOverride) {
+    const override = Number(secondsOverride);
+    const base = (Number.isFinite(override) && override > 0) ? Math.floor(override) : GAME.timer;
+    timerLeft = base;
+    els.timer.textContent = timerLeft;
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        timerLeft = Math.max(0, timerLeft - 1);
+        els.timer.textContent = timerLeft;
+        if(timerLeft === 0) clearInterval(timerInterval);
+    }, 1000);
+  }
+
+  function addTeam() {
+    const n = prompt('Название команды:');
+    if(n && !TEAMS[n]) { TEAMS[n] = {score:0}; saveState(); render(); }
+  }
+
+  function normalizeGame(rawGame) {
+    const fallback = JSON.parse(JSON.stringify(DEFAULT_GAME));
+    if(!rawGame || typeof rawGame !== 'object') return fallback;
+
+    const game = {
+      title: String(rawGame.title ?? fallback.title),
+      timer: Math.max(1, safeInt(rawGame.timer, fallback.timer)),
+      settings: {
+        allowNegative: toBool(rawGame.settings && rawGame.settings.allowNegative),
+        autoDeduct: toBool(rawGame.settings && rawGame.settings.autoDeduct),
+        singleTeam: toBool(rawGame.settings && rawGame.settings.singleTeam)
+      },
+      categories: {}
+    };
+
+    const srcCats = (rawGame.categories && typeof rawGame.categories === 'object') ? rawGame.categories : fallback.categories;
+    Object.entries(srcCats).forEach(([catName, rawQs]) => {
+      const safeName = String(catName ?? '').trim();
+      if(!safeName) return;
+      const list = Array.isArray(rawQs) ? rawQs : [];
+      const normalized = list.map((q) => {
+        const item = {
+          value: Math.max(1, safeInt(q && q.value, 100)),
+          q: String((q && q.q) ?? ''),
+          a: String((q && q.a) ?? ''),
+          used: !!(q && q.used)
+        };
+        if(toBool(q && q.bag)) item.bag = true;
+        const tm = safeInt(q && q.timerSec, 0);
+        if(tm > 0) item.timerSec = tm;
+        const media = String((q && q.media) ?? '').trim();
+        if(media) item.media = media;
+        if(q && q.mediaName) item.mediaName = String(q.mediaName);
+        if(q && q.mediaType) item.mediaType = String(q.mediaType);
+        return item;
+      }).sort((a,b) => a.value - b.value);
+      game.categories[safeName] = normalized;
+    });
+
+    if(!Object.keys(game.categories).length) game.categories = fallback.categories;
+    return game;
+  }
+
+  function normalizeTeams(rawTeams) {
+    if(!rawTeams || typeof rawTeams !== 'object') return {};
+    const teams = {};
+    Object.entries(rawTeams).forEach(([name, team]) => {
+      const safeName = String(name ?? '').trim();
+      if(!safeName) return;
+      teams[safeName] = { score: safeInt(team && team.score, 0) };
+    });
+    return teams;
+  }
+
+  const GameStore = {
+    loadGame: () => { const s = localStorage.getItem('svoyagamev6'); return s ? JSON.parse(s) : DEFAULT_GAME; },
+    loadTeams: () => { const t = localStorage.getItem('svoyateams'); return t ? JSON.parse(t) : {}; },
+    save: (game, teams) => { localStorage.setItem('svoyagamev6', JSON.stringify(game)); localStorage.setItem('svoyateams', JSON.stringify(teams)); }
+  };
+
+  function loadState() {
+    try {
+      const rawGame = GameStore.loadGame();
+      GAME = normalizeGame(rawGame);
+    } catch (e) {
+      console.warn('Failed to parse saved game state, fallback to defaults.', e);
+      GAME = JSON.parse(JSON.stringify(DEFAULT_GAME));
+    }
+
+    try {
+      TEAMS = normalizeTeams(GameStore.loadTeams());
+    } catch (e) {
+      console.warn('Failed to parse saved teams, fallback to empty.', e);
+      TEAMS = {};
+    }
+
+    const m = localStorage.getItem('svoya_mode');
+    if(m) document.documentElement.setAttribute('data-mode', m);
+  }
+  function saveState() {
+    try {
+      let embeddedBytes = 0;
+      Object.values(GAME.categories || {}).forEach((arr) => (arr || []).forEach((q) => {
+        const med = String(q.media || '');
+        if(med.startsWith('data:')) {
+          const base64 = med.split(',')[1] || '';
+          embeddedBytes += approxBase64Size(base64);
+        }
+      }));
+      if(embeddedBytes > 8 * 1024 * 1024) {
+        alert('Слишком много встроенных медиа (>8MB). Используйте URL-ссылки или уменьшите файлы.');
+        return;
+      }
+      GameStore.save(GAME, TEAMS);
+    } catch (e) {
+      console.error('saveState failed', e);
+      if(e && (e.name === 'QuotaExceededError' || e.code === 22)) {
+        alert('Переполнено хранилище браузера. Удалите часть встроенных data: медиа или используйте URL.');
+      } else {
+        alert('Не удалось сохранить состояние. Попробуйте уменьшить медиа или использовать URL-ссылки.');
+      }
+    }
+  }
+  function resetGame() {
+    if(confirm('Сбросить игру полностью?')) {
+        GAME = JSON.parse(JSON.stringify(DEFAULT_GAME));
+        TEAMS = {};
+        catsPage = 0;
+        GAME_STATS = { asked: 0, correct: 0, wrong: 0, pass: 0 };
+        saveStats();
+        saveState();
+        render();
+    }
+  }
+
+  function exportGame() {
+     const b = new Blob([JSON.stringify({game:GAME, teams:TEAMS})], {type:'application/json'});
+     const url = URL.createObjectURL(b);
+     const a = document.createElement('a');
+     a.href = url;
+     a.download = 'game.json';
+     a.click();
+     setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+  function exportLog() {
+     const b = new Blob([gameLog.map(l=>`${l.time} ${l.message}`).join('\n')], {type:'text/plain'});
+     const url = URL.createObjectURL(b);
+     const a = document.createElement('a');
+     a.href = url;
+     a.download = 'log.txt';
+     a.click();
+     setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  // Start
+  init();
+</script>
+
+<div id="printView" style="display:none"></div>
+</body>
+</html>
